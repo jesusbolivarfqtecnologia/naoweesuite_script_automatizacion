@@ -52,6 +52,39 @@ def _round2_if_number(v: Any) -> Any:
 		return v
 
 
+def _clean_discounts_in_details(details: List[Dict[str, Any]]) -> None:
+	"""Filtra descuentos conservando solo aquellos con algún valor numérico positivo (> 0).
+	Si no queda ninguno, elimina la clave 'discounts' del quantity_detail.
+	"""
+	NULL_KEYS = ["height", "width", "length", "area", "quantity", "subtotal"]
+
+	def _has_positive_number(disc: Dict[str, Any]) -> bool:
+		for k in NULL_KEYS:
+			v = disc.get(k)
+			try:
+				if v is None or (isinstance(v, str) and v.strip() == ""):
+					continue
+				if float(v) > 0:
+					return True
+			except Exception:
+				continue
+		return False
+
+	for d in details:
+		discounts = d.get("discounts")
+		if not discounts:
+			d.pop("discounts", None)
+			continue
+		filtered = []
+		for disc in discounts:
+			if _has_positive_number(disc):
+				filtered.append(disc)
+		if filtered:
+			d["discounts"] = filtered
+		else:
+			d.pop("discounts", None)
+
+
 def extraer_datos_hoja(
 	ws,
 	*,
@@ -243,9 +276,10 @@ def extraer_datos_hoja(
 					}
 				)
 
-			# Armar subcategoría y omitir total_quantity si no hay código numérico
+			# Limpiar descuentos vacíos y armar subcategoría; omitir total_quantity si no hay código numérico
 			codigo_cat = _categoria_from_id(id_val)
 			has_numeric_code = any(ch.isdigit() for ch in str(id_val))
+			_clean_discounts_in_details(details)
 			subcat = {
 				"codigo": codigo_cat,
 				"id": id_val,
@@ -329,6 +363,7 @@ def extraer_datos_hoja(
 
 		codigo_cat = _categoria_from_id(id_val)
 		has_numeric_code = any(ch.isdigit() for ch in str(id_val))
+		_clean_discounts_in_details(details)
 		subcat = {
 			"codigo": codigo_cat,
 			"id": id_val,
