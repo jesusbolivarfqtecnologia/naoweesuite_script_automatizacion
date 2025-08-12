@@ -39,6 +39,18 @@ def _sum_safe(values: List[Any]) -> float:
 	return total
 
 
+def _round2_if_number(v: Any) -> Any:
+	"""Convierte a float y redondea a 2 decimales si es numérico; de lo contrario devuelve el valor original."""
+	try:
+		if v is None or (isinstance(v, str) and v.strip() == ""):
+			return v
+		# Evitar convertir strings no numéricos como 'ABC'
+		f = float(v)
+		return round(f, 2)
+	except Exception:
+		return v
+
+
 def extraer_datos_hoja(
 	ws,
 	*,
@@ -95,23 +107,23 @@ def extraer_datos_hoja(
 		for row in range(r1, r2 + 1):
 			# Campos principales
 			location = ws[f"F{row}"].value
-			height = ws[f"G{row}"].value
-			width = ws[f"H{row}"].value
-			length = ws[f"I{row}"].value
-			area = ws[f"J{row}"].value
-			quantity = ws[f"K{row}"].value
-			subtotal = ws[f"L{row}"].value
+			height = _round2_if_number(ws[f"G{row}"].value)
+			width = _round2_if_number(ws[f"H{row}"].value)
+			length = _round2_if_number(ws[f"I{row}"].value)
+			area = _round2_if_number(ws[f"J{row}"].value)
+			quantity = _round2_if_number(ws[f"K{row}"].value)
+			subtotal = _round2_if_number(ws[f"L{row}"].value)
 
 			# Descuentos
-			d_height = ws[f"M{row}"].value
-			d_width = ws[f"N{row}"].value
-			d_length = ws[f"O{row}"].value
-			d_area = ws[f"P{row}"].value
-			d_quantity = ws[f"Q{row}"].value
-			d_subtotal = ws[f"R{row}"].value
+			d_height = _round2_if_number(ws[f"M{row}"].value)
+			d_width = _round2_if_number(ws[f"N{row}"].value)
+			d_length = _round2_if_number(ws[f"O{row}"].value)
+			d_area = _round2_if_number(ws[f"P{row}"].value)
+			d_quantity = _round2_if_number(ws[f"Q{row}"].value)
+			d_subtotal = _round2_if_number(ws[f"R{row}"].value)
 
 			# Total
-			total_val = ws[f"S{row}"].value
+			total_val = _round2_if_number(ws[f"S{row}"].value)
 			totals_collected.append(total_val)
 
 			details.append(
@@ -142,7 +154,7 @@ def extraer_datos_hoja(
 			{
 				"codigo": _categoria_from_id(id_val),
 				"id": id_val,
-				"total_quantity": _sum_safe(totals_collected),
+				"total_quantity": _round2_if_number(_sum_safe(totals_collected)),
 				"quantity_details": details,
 			}
 		)
