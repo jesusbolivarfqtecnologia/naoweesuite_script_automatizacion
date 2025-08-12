@@ -12,6 +12,33 @@ def leer_cedula(ws_apu) -> Any:
 	return ws_apu["L6"].value
 
 
+def _to_str(v: Any) -> str:
+	return "" if v is None else str(v)
+
+
+def _categoria_from_id(id_val: Any) -> str:
+	"""Obtiene el código de categoría a partir del id (parte antes del punto). Ej: '14.1' -> '14'."""
+	if id_val is None:
+		return ""
+	s = str(id_val)
+	# Normalizar notación de floats con coma si apareciera
+	s = s.replace(",", ".")
+	return s.split(".")[0]
+
+
+def _sum_safe(values: List[Any]) -> float:
+	total = 0.0
+	for v in values:
+		try:
+			if v is None or (isinstance(v, str) and v.strip() == ""):
+				continue
+			total += float(v)
+		except Exception:
+			# Si no es numérico, lo ignoramos en la suma
+			continue
+	return total
+
+
 def extraer_datos_hoja(
 	ws,
 	*,
@@ -24,49 +51,105 @@ def extraer_datos_hoja(
 	steps: int = 33,
 ) -> List[Dict[str, Any]]:
 	"""
-	Recorre la hoja para extraer pares {codigo, elementos}.
+	Recorre la hoja para extraer subcategorías con sus quantity_details.
 
-	- El primer código está en B9 y los siguientes cada `steps` filas.
-	- El primer bloque de elementos está en F12:S27 y los siguientes desplazados `steps` filas.
-	Detiene cuando el código en la fila correspondiente es vacío/None.
+	Devuelve una lista de dicts con forma:
+	{
+	  "codigo": "14",            # derivado de id (parte antes del punto)
+	  "id": "14.1",              # valor leído en B9 (+ n*steps)
+	  "total_quantity": 123.0,     # suma de S[row] en el bloque
+	  "quantity_details": [        # filas de F..S
+		 { location, height, width, length, area, quantity, subtotal,
+		   total: { total },
+		   discounts: [ { element, height, width, length, area, quantity, subtotal } ]
+		 }, ...
+	  ]
+	}
 	"""
 
 	cod_col = letra_celda_codigo.upper()
 	elem_c1 = letra_celda_inicio_elementos.upper()
 	elem_c2 = letra_celda_fin_elementos.upper()
 
-	elem_c1_idx = column_index_from_string(elem_c1)
-	elem_c2_idx = column_index_from_string(elem_c2)
+	# índices de columnas para validación de rango (no imprescindibles, pero útiles si iteramos)
+	column_index_from_string(elem_c1)
+	column_index_from_string(elem_c2)
 
-	resultados: List[Dict[str, Any]] = []
+	subcategorias: List[Dict[str, Any]] = []
 	i = 0
 	while True:
 		code_row = numero_celda_codigo + i * steps
 		code_cell = f"{cod_col}{code_row}"
-		codigo = ws[code_cell].value
+		id_val = ws[code_cell].value
 
-		# Parada: si el código está vacío/None o es una cadena vacía
-		if codigo is None or (isinstance(codigo, str) and codigo.strip() == ""):
+		# Parada: si el id (código) está vacío
+		if id_val is None or (isinstance(id_val, str) and id_val.strip() == ""):
 			break
 
-		elem_r1 = numero_celda_inicio_elementos + i * steps
-		elem_r2 = numero_celda_fin_elementos + i * steps
+		# Rango del bloque de elementos
+		r1 = numero_celda_inicio_elementos + i * steps
+		r2 = numero_celda_fin_elementos + i * steps
 
-		elementos_bloque = [
-			list(row)
-			for row in ws.iter_rows(
-				min_row=elem_r1,
-				max_row=elem_r2,
-				min_col=elem_c1_idx,
-				max_col=elem_c2_idx,
-				values_only=True,
+		details = []
+		totals_collected: List[Any] = []
+		for row in range(r1, r2 + 1):
+			# Campos principales
+			location = ws[f"F{row}"].value
+			height = ws[f"G{row}"].value
+			width = ws[f"H{row}"].value
+			length = ws[f"I{row}"].value
+			area = ws[f"J{row}"].value
+			quantity = ws[f"K{row}"].value
+			subtotal = ws[f"L{row}"].value
+
+			# Descuentos
+			d_height = ws[f"M{row}"].value
+			d_width = ws[f"N{row}"].value
+			d_length = ws[f"O{row}"].value
+			d_area = ws[f"P{row}"].value
+			d_quantity = ws[f"Q{row}"].value
+			d_subtotal = ws[f"R{row}"].value
+
+			# Total
+			total_val = ws[f"S{row}"].value
+			totals_collected.append(total_val)
+
+			details.append(
+				{
+					"location": location,
+					"height": height,
+					"width": width,
+					"length": length,
+					"area": area,
+					"quantity": quantity,
+					"subtotal": subtotal,
+					"total": {"total": total_val},
+					"discounts": [
+						{
+							"element": "",
+							"height": d_height,
+							"width": d_width,
+							"length": d_length,
+							"area": d_area,
+							"quantity": d_quantity,
+							"subtotal": d_subtotal,
+						}
+					],
+				}
 			)
-		]
 
-		resultados.append({"codigo": codigo, "elementos": elementos_bloque})
+		subcategorias.append(
+			{
+				"codigo": _categoria_from_id(id_val),
+				"id": id_val,
+				"total_quantity": _sum_safe(totals_collected),
+				"quantity_details": details,
+			}
+		)
+
 		i += 1
 
-	return resultados
+	return subcategorias
 
 
 def procesar_archivo(
@@ -112,7 +195,7 @@ def procesar_archivo(
 	next_sheet_name = wb.sheetnames[next_index]
 	ws_target = wb[next_sheet_name]
 
-	datos = extraer_datos_hoja(
+	subcats = extraer_datos_hoja(
 		ws_target,
 		letra_celda_codigo=letra_celda_codigo,
 		numero_celda_codigo=numero_celda_codigo,
@@ -123,11 +206,26 @@ def procesar_archivo(
 		steps=steps,
 	)
 
+	# Agrupar por categoría (codigo)
+	cats_map: Dict[str, Dict[str, Any]] = {}
+	for sc in subcats:
+		codigo_cat = _to_str(sc.get("codigo", ""))
+		if codigo_cat not in cats_map:
+			cats_map[codigo_cat] = {"codigo": codigo_cat, "subcategories": []}
+		# Subcategorías incluyen id, total_quantity y quantity_details
+		cats_map[codigo_cat]["subcategories"].append(
+			{
+				"id": sc.get("id"),
+				"total_quantity": sc.get("total_quantity"),
+				"quantity_details": sc.get("quantity_details", []),
+			}
+		)
+
+	categories = list(cats_map.values())
+
 	return {
-		"archivo": xlsx_path.name,
-		"hoja_objetivo": next_sheet_name,
 		"cedula": cedula,
-		"datos": datos,
+		"categories": categories,
 	}
 
 
