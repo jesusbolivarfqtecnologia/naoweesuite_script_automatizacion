@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -87,25 +88,181 @@ def extraer_datos_hoja(
 	column_index_from_string(elem_c1)
 	column_index_from_string(elem_c2)
 
+	def _normalize(s: Any) -> str:
+		return "" if s is None else str(s).strip().upper()
+
+	# 1) Detectar encabezados "LOCALIZACION Y/O ELEMENTO" y su columna
+	header_cells: List[tuple[int, int]] = []  # (row, col)
+	header_text = "LOCALIZACION Y/O ELEMENTO"
+	max_row = ws.max_row or 0
+	max_col = ws.max_column or 0
+	for r in range(1, max_row + 1):
+		for c in range(1, max_col + 1):
+			v = ws.cell(row=r, column=c).value
+			if _normalize(v) == header_text:
+				header_cells.append((r, c))
+				break  # asumir una coincidencia por fila es suficiente
+
 	subcategorias: List[Dict[str, Any]] = []
+
+	def _row_is_empty(row: int) -> bool:
+		# Considerar vacío si todas las celdas F..S están vacías o string vacío
+		for col in ["F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S"]:
+			val = ws[f"{col}{row}"].value
+			if val not in (None, ""):
+				if not (isinstance(val, str) and val.strip() == ""):
+					return False
+		return True
+
+	if header_cells:
+		header_cells.sort(key=lambda t: (t[0], t[1]))
+		for idx, (hr, hc) in enumerate(header_cells):
+			# Debajo del título suele haber una fila de encabezados (ALTO, ANCHO, ...), la saltamos
+			start_row = hr + 2
+			next_hr = header_cells[idx + 1][0] if (idx + 1 < len(header_cells)) else None
+			# Límite máximo de 16 filas de elementos
+			hard_end = start_row + 16 - 1
+			end_row = hard_end
+			if next_hr:
+				end_row = min(end_row, next_hr - 1)
+			end_row = min(end_row, max_row)
+
+			# Ajustar end_row para no pasarnos por filas completamente vacías al final
+			def _row_is_empty_rel(row: int, base_col: int) -> bool:
+				# Considerar vacío si todas las celdas desde base_col hasta base_col+13 están vacías
+				for offset in range(0, 14):  # columnas F..S relativo al encabezado
+					col_idx = base_col + offset
+					val = ws.cell(row=row, column=col_idx).value
+					if val not in (None, ""):
+						if not (isinstance(val, str) and str(val).strip() == ""):
+							return False
+				return True
+
+			r = end_row
+			while r >= start_row and _row_is_empty_rel(r, hc):
+				r -= 1
+			end_row = r
+
+			if end_row < start_row:
+				continue  # no hay detalles
+
+			# Buscar id priorizando columna B hacia arriba con preferencia por valores con dígitos
+			def _looks_like_code(val: Any) -> bool:
+				if val is None:
+					return False
+				s = str(val)
+				return bool(re.search(r"\d", s))
+
+			id_val = None
+			# 1) Columna B (2)
+			probe_row = hr - 1
+			while probe_row >= 1 and (hr - probe_row) <= 30:
+				candidate = ws.cell(row=probe_row, column=2).value
+				if candidate not in (None, "") and not (isinstance(candidate, str) and str(candidate).strip() == ""):
+					if _looks_like_code(candidate):
+						id_val = candidate
+						break
+					# guardar como posible si no encontramos uno con dígitos
+					if id_val is None:
+						id_val = candidate
+				probe_row -= 1
+
+			# 2) Respaldo: columna (hc-2)
+			if id_val is None or not _looks_like_code(id_val):
+				id_col = max(1, hc - 2)
+				probe_row = hr - 1
+				fallback_val = None
+				while probe_row >= 1 and (hr - probe_row) <= 30:
+					candidate = ws.cell(row=probe_row, column=id_col).value
+					if candidate not in (None, "") and not (isinstance(candidate, str) and str(candidate).strip() == ""):
+						if _looks_like_code(candidate):
+							id_val = candidate
+							break
+						if fallback_val is None:
+							fallback_val = candidate
+					probe_row -= 1
+				if (id_val is None) and (fallback_val is not None):
+					id_val = fallback_val
+
+			details = []
+			totals_collected: List[Any] = []
+			for row in range(start_row, end_row + 1):
+				# Omitir filas completamente vacías en el medio
+				if _row_is_empty_rel(row, hc):
+					continue
+
+				# Columnas relativas al encabezado: base = hc
+				base = hc
+				location = ws.cell(row=row, column=base + 0).value
+				height = _round2_if_number(ws.cell(row=row, column=base + 1).value)
+				width = _round2_if_number(ws.cell(row=row, column=base + 2).value)
+				length = _round2_if_number(ws.cell(row=row, column=base + 3).value)
+				area = _round2_if_number(ws.cell(row=row, column=base + 4).value)
+				quantity = _round2_if_number(ws.cell(row=row, column=base + 5).value)
+				subtotal = _round2_if_number(ws.cell(row=row, column=base + 6).value)
+
+				d_height = _round2_if_number(ws.cell(row=row, column=base + 7).value)
+				d_width = _round2_if_number(ws.cell(row=row, column=base + 8).value)
+				d_length = _round2_if_number(ws.cell(row=row, column=base + 9).value)
+				d_area = _round2_if_number(ws.cell(row=row, column=base + 10).value)
+				d_quantity = _round2_if_number(ws.cell(row=row, column=base + 11).value)
+				d_subtotal = _round2_if_number(ws.cell(row=row, column=base + 12).value)
+
+				total_val = _round2_if_number(ws.cell(row=row, column=base + 13).value)
+				totals_collected.append(total_val)
+
+				details.append(
+					{
+						"location": location,
+						"height": height,
+						"width": width,
+						"length": length,
+						"area": area,
+						"quantity": quantity,
+						"subtotal": subtotal,
+						"total": {"total": total_val},
+						"discounts": [
+							{
+								"element": "",
+								"height": d_height,
+								"width": d_width,
+								"length": d_length,
+								"area": d_area,
+								"quantity": d_quantity,
+								"subtotal": d_subtotal,
+							}
+						],
+					}
+				)
+
+			subcategorias.append(
+				{
+					"codigo": _categoria_from_id(id_val),
+					"id": id_val,
+					"total_quantity": _round2_if_number(_sum_safe(totals_collected)),
+					"quantity_details": details,
+				}
+			)
+
+		return subcategorias
+
+	# 2) Fallback: método por pasos (si no se halló el encabezado)
+	subcategorias = []
 	i = 0
 	while True:
 		code_row = numero_celda_codigo + i * steps
 		code_cell = f"{cod_col}{code_row}"
 		id_val = ws[code_cell].value
 
-		# Parada: si el id (código) está vacío
 		if id_val is None or (isinstance(id_val, str) and id_val.strip() == ""):
 			break
 
-		# Rango del bloque de elementos
 		r1 = numero_celda_inicio_elementos + i * steps
 		r2 = numero_celda_fin_elementos + i * steps
 
 		details = []
-		totals_collected: List[Any] = []
+		totals_collected = []
 		for row in range(r1, r2 + 1):
-			# Campos principales
 			location = ws[f"F{row}"].value
 			height = _round2_if_number(ws[f"G{row}"].value)
 			width = _round2_if_number(ws[f"H{row}"].value)
@@ -114,7 +271,6 @@ def extraer_datos_hoja(
 			quantity = _round2_if_number(ws[f"K{row}"].value)
 			subtotal = _round2_if_number(ws[f"L{row}"].value)
 
-			# Descuentos
 			d_height = _round2_if_number(ws[f"M{row}"].value)
 			d_width = _round2_if_number(ws[f"N{row}"].value)
 			d_length = _round2_if_number(ws[f"O{row}"].value)
@@ -122,7 +278,6 @@ def extraer_datos_hoja(
 			d_quantity = _round2_if_number(ws[f"Q{row}"].value)
 			d_subtotal = _round2_if_number(ws[f"R{row}"].value)
 
-			# Total
 			total_val = _round2_if_number(ws[f"S{row}"].value)
 			totals_collected.append(total_val)
 
