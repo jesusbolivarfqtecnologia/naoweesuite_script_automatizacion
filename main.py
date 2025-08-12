@@ -91,6 +91,10 @@ def extraer_datos_hoja(
 	def _normalize(s: Any) -> str:
 		return "" if s is None else str(s).strip().upper()
 
+	def _is_codigo_label(val: Any) -> bool:
+		lbl = _normalize(val)
+		return lbl in ("CODIGO", "CÓDIGO")
+
 	# 1) Detectar encabezados "LOCALIZACION Y/O ELEMENTO" y su columna
 	header_cells: List[tuple[int, int]] = []  # (row, col)
 	header_text = "LOCALIZACION Y/O ELEMENTO"
@@ -146,7 +150,8 @@ def extraer_datos_hoja(
 			if end_row < start_row:
 				continue  # no hay detalles
 
-			# Buscar id priorizando columna B hacia arriba con preferencia por valores con dígitos
+			# Buscar id priorizando columna B hacia arriba con preferencia por valores con dígitos,
+			# y validando que arriba del id esté la etiqueta 'CODIGO'/'CÓDIGO'.
 			def _looks_like_code(val: Any) -> bool:
 				if val is None:
 					return False
@@ -154,35 +159,34 @@ def extraer_datos_hoja(
 				return bool(re.search(r"\d", s))
 
 			id_val = None
+			id_pos = None  # (row, col)
 			# 1) Columna B (2)
 			probe_row = hr - 1
 			while probe_row >= 1 and (hr - probe_row) <= 30:
 				candidate = ws.cell(row=probe_row, column=2).value
 				if candidate not in (None, "") and not (isinstance(candidate, str) and str(candidate).strip() == ""):
-					if _looks_like_code(candidate):
+					if _looks_like_code(candidate) and _is_codigo_label(ws.cell(row=probe_row - 1, column=2).value):
 						id_val = candidate
+						id_pos = (probe_row, 2)
 						break
-					# guardar como posible si no encontramos uno con dígitos
-					if id_val is None:
-						id_val = candidate
 				probe_row -= 1
 
 			# 2) Respaldo: columna (hc-2)
-			if id_val is None or not _looks_like_code(id_val):
+			if id_val is None:
 				id_col = max(1, hc - 2)
 				probe_row = hr - 1
-				fallback_val = None
 				while probe_row >= 1 and (hr - probe_row) <= 30:
 					candidate = ws.cell(row=probe_row, column=id_col).value
 					if candidate not in (None, "") and not (isinstance(candidate, str) and str(candidate).strip() == ""):
-						if _looks_like_code(candidate):
+						if _looks_like_code(candidate) and _is_codigo_label(ws.cell(row=probe_row - 1, column=id_col).value):
 							id_val = candidate
+							id_pos = (probe_row, id_col)
 							break
-						if fallback_val is None:
-							fallback_val = candidate
 					probe_row -= 1
-				if (id_val is None) and (fallback_val is not None):
-					id_val = fallback_val
+
+			# Si no hay id válido (con dígitos y etiqueta arriba), saltar este bloque
+			if id_val is None:
+				continue
 
 			details = []
 			totals_collected: List[Any] = []
@@ -194,6 +198,10 @@ def extraer_datos_hoja(
 				# Columnas relativas al encabezado: base = hc
 				base = hc
 				location = ws.cell(row=row, column=base + 0).value
+				# Filtrar: incluir solo si location tiene valor
+				if location is None or (isinstance(location, str) and str(location).strip() == ""):
+					continue
+
 				height = _round2_if_number(ws.cell(row=row, column=base + 1).value)
 				width = _round2_if_number(ws.cell(row=row, column=base + 2).value)
 				length = _round2_if_number(ws.cell(row=row, column=base + 3).value)
@@ -235,14 +243,19 @@ def extraer_datos_hoja(
 					}
 				)
 
-			subcategorias.append(
-				{
-					"codigo": _categoria_from_id(id_val),
-					"id": id_val,
-					"total_quantity": _round2_if_number(_sum_safe(totals_collected)),
-					"quantity_details": details,
-				}
-			)
+			# Armar subcategoría y omitir total_quantity si no hay código numérico
+			codigo_cat = _categoria_from_id(id_val)
+			has_numeric_code = any(ch.isdigit() for ch in str(id_val))
+			subcat = {
+				"codigo": codigo_cat,
+				"id": id_val,
+				"quantity_details": details,
+			}
+			if has_numeric_code:
+				subcat["total_quantity"] = _round2_if_number(_sum_safe(totals_collected))
+			# Agregar solo si hay detalles
+			if details:
+				subcategorias.append(subcat)
 
 		return subcategorias
 
@@ -257,6 +270,13 @@ def extraer_datos_hoja(
 		if id_val is None or (isinstance(id_val, str) and id_val.strip() == ""):
 			break
 
+		# Validar que sobre el ID esté la etiqueta CODIGO/CÓDIGO en la misma columna del código
+		label_row = code_row - 1
+		if label_row >= 1:
+			if not _is_codigo_label(ws[f"{cod_col}{label_row}"].value):
+				i += 1
+				continue
+
 		r1 = numero_celda_inicio_elementos + i * steps
 		r2 = numero_celda_fin_elementos + i * steps
 
@@ -264,6 +284,8 @@ def extraer_datos_hoja(
 		totals_collected = []
 		for row in range(r1, r2 + 1):
 			location = ws[f"F{row}"].value
+			if location is None or (isinstance(location, str) and location.strip() == ""):
+				continue
 			height = _round2_if_number(ws[f"G{row}"].value)
 			width = _round2_if_number(ws[f"H{row}"].value)
 			length = _round2_if_number(ws[f"I{row}"].value)
@@ -305,14 +327,18 @@ def extraer_datos_hoja(
 				}
 			)
 
-		subcategorias.append(
-			{
-				"codigo": _categoria_from_id(id_val),
-				"id": id_val,
-				"total_quantity": _round2_if_number(_sum_safe(totals_collected)),
-				"quantity_details": details,
-			}
-		)
+		codigo_cat = _categoria_from_id(id_val)
+		has_numeric_code = any(ch.isdigit() for ch in str(id_val))
+		subcat = {
+			"codigo": codigo_cat,
+			"id": id_val,
+			"quantity_details": details,
+		}
+		if has_numeric_code:
+			subcat["total_quantity"] = _round2_if_number(_sum_safe(totals_collected))
+		# Agregar solo si hay detalles
+		if details:
+			subcategorias.append(subcat)
 
 		i += 1
 
@@ -380,13 +406,13 @@ def procesar_archivo(
 		if codigo_cat not in cats_map:
 			cats_map[codigo_cat] = {"codigo": codigo_cat, "subcategories": []}
 		# Subcategorías incluyen id, total_quantity y quantity_details
-		cats_map[codigo_cat]["subcategories"].append(
-			{
-				"id": sc.get("id"),
-				"total_quantity": sc.get("total_quantity"),
-				"quantity_details": sc.get("quantity_details", []),
-			}
-		)
+		sub = {
+			"id": sc.get("id"),
+			"quantity_details": sc.get("quantity_details", []),
+		}
+		if "total_quantity" in sc:
+			sub["total_quantity"] = sc["total_quantity"]
+		cats_map[codigo_cat]["subcategories"].append(sub)
 
 	categories = list(cats_map.values())
 
