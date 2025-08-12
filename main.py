@@ -85,6 +85,28 @@ def _clean_discounts_in_details(details: List[Dict[str, Any]]) -> None:
 			d.pop("discounts", None)
 
 
+def _zero_nulls_in_details(details: List[Dict[str, Any]]) -> None:
+	"""Convierte valores nulos en 0.0 para los campos numéricos de cada detail y sus discounts."""
+	NUM_KEYS = ["height", "width", "length", "area", "quantity", "subtotal"]
+	for d in details:
+		for k in NUM_KEYS:
+			if d.get(k) in (None, ""):
+				d[k] = 0.0
+		# total.total
+		total_obj = d.get("total")
+		if isinstance(total_obj, dict):
+			if total_obj.get("total") in (None, ""):
+				total_obj["total"] = 0.0
+		# discounts
+		discounts = d.get("discounts")
+		if discounts:
+			for disc in discounts:
+				for k in NUM_KEYS:
+					if disc.get(k) in (None, ""):
+						dic_val = 0.0
+						disc[k] = dic_val
+
+
 def extraer_datos_hoja(
 	ws,
 	*,
@@ -280,6 +302,7 @@ def extraer_datos_hoja(
 			codigo_cat = _categoria_from_id(id_val)
 			has_numeric_code = any(ch.isdigit() for ch in str(id_val))
 			_clean_discounts_in_details(details)
+			_zero_nulls_in_details(details)
 			subcat = {
 				"codigo": codigo_cat,
 				"id": id_val,
@@ -364,6 +387,7 @@ def extraer_datos_hoja(
 		codigo_cat = _categoria_from_id(id_val)
 		has_numeric_code = any(ch.isdigit() for ch in str(id_val))
 		_clean_discounts_in_details(details)
+		_zero_nulls_in_details(details)
 		subcat = {
 			"codigo": codigo_cat,
 			"id": id_val,
