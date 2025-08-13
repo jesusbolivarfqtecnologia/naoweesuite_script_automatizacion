@@ -1,0 +1,353 @@
+{
+    "budget": {
+        "beneficiary_id": null,
+        "budget_category": [
+            {
+                "budget_subcategory": [
+                    {
+                        "id": 803313,
+                        "quantities": [
+                            {
+                                "discounts": [],
+                                "height": "2.00",
+                                "id": 1409142,
+                                "length": "4.00",
+                                "location": "baño",
+                                "quantity": "1.00",
+                                "subtotal": "1.00",
+                                "total": {
+                                    "id": 1409124,
+                                    "total": "1.00"
+                                },
+                                "width": "3.00"
+                            }
+                        ],
+                        "subcategory": {
+                            "apu": "1.32",
+                            "id": 285887,
+                            "name": "Desmonte aparatos sanitarios",
+                            "total_value": "32106",
+                            "unit": "un"
+                        },
+                        "total_quantity": 1.0,
+                        "total_value": 32106.0
+                    }
+                ],
+                "category": {
+                    "id": 1,
+                    "name": "PRELIMINARES"
+                },
+                "category_region_id": 1180,
+                "id": 358389,
+                "region": {
+                    "id": 17,
+                    "name": "Cesar"
+                }
+            }
+        ],
+        "budget_details": [
+            {
+                "concept": {
+                    "id": 84,
+                    "value": "ADMINISTRACIÓN"
+                },
+                "id": 134868,
+                "percentage": "0.12",
+                "type": {
+                    "id": 102,
+                    "value": "Administración"
+                },
+                "value": "3853"
+            },
+            {
+                "concept": {
+                    "id": 86,
+                    "value": "UTILIDAD"
+                },
+                "id": 134870,
+                "percentage": "0.03",
+                "type": {
+                    "id": 100,
+                    "value": "Utilidad"
+                },
+                "value": "964"
+            },
+            {
+                "concept": {
+                    "id": 85,
+                    "value": "IMPREVISTOS"
+                },
+                "id": 134869,
+                "percentage": "0.05",
+                "type": {
+                    "id": 101,
+                    "value": "Imprevistos"
+                },
+                "value": "1606"
+            }
+        ],
+        "budget_status_changes": [
+            {
+                "created_at": "Tue, 12 Aug 2025 13:39:55 GMT",
+                "observations": "",
+                "status": {
+                    "id": 4,
+                    "name": "Proceso",
+                    "reference": "process"
+                },
+                "type": {
+                    "id": null,
+                    "value": null
+                },
+                "updated_at": "Tue, 12 Aug 2025 13:39:55 GMT",
+                "user": null,
+                "user_id": 166
+            }
+        ],
+        "code": "presupuesto_ENT",
+        "contract_id": 9,
+        "contractor_id": 166,
+        "data": {
+            "specific_improvement_type_locative": [
+                106
+            ],
+            "specific_improvement_type_locative_mixto": null
+        },
+        "department_id": 9,
+        "diagnostic_id": null,
+        "documents": null,
+        "id": 6166,
+        "improvement_type": {
+            "id": 90,
+            "name": "Locativo"
+        },
+        "iva_calculate": "964 * 0.19                                                                      ",
+        "iva_utils": "0E-10",
+        "legal_minimum_wages": 18,
+        "minimum_salary": {
+            "id": 52,
+            "value": "1300000"
+        },
+        "municipality_id": 404,
+        "presentation_date": "2025-08-13",
+        "resolution_id": 9,
+        "scheme_type": {
+            "id": 50,
+            "value": "Comunitario"
+        },
+        "specific_improvement": null,
+        "status": {
+            "id": 4,
+            "name": "Proceso"
+        },
+        "subtotal_direct_costs": 32106.0,
+        "subtotal_indirect_costs": 6423.0,
+        "total_budget": 1338529.0,
+        "total_days_execution": 0,
+        "total_diagnosis": 1300000.0,
+        "valid_year": 2024,
+        "value_redounded": "1338529",
+        "village": "ATANQUEZ"
+    },
+    "budget_id": 6166,
+    "cellphone": "3112465941",
+    "contract": {
+        "document_date": "2024-04-24",
+        "id": 9,
+        "resolution": "SUP. RURAL 224001 RES. 0159"
+    },
+    "contractor": {
+        "gestor": {
+            "document_number": "9015896464",
+            "full_name": "INVERGLOBAL INTEGRAL SAS",
+            "last_name": "SAS",
+            "name": "INVERGLOBAL INTEGRAL"
+        },
+        "gestor_id": "166",
+        "id": 37308,
+        "schema": "Comunitario"
+    },
+    "data": null,
+    "department": {
+        "code": "20",
+        "id": 9,
+        "name": "CESAR"
+    },
+    "diagnostic_id": 34115,
+    "document_number": "5134391",
+    "documents": [
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 211,
+            "id": 672062,
+            "url": "production/Minvivienda/5134391/documentosAcreditacion/property_acreditation_document-6.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 300,
+            "id": 672072,
+            "url": "production/Minvivienda/5134391/DibujoManoAlzada/Levantamiento.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 400,
+            "id": 672096,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/visitaDiagnostica/visitaDiagnostica.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 301,
+            "id": 672098,
+            "url": "production/Minvivienda/5134391/Anexo/Fotografia1.jpeg"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 301,
+            "id": 672099,
+            "url": "production/Minvivienda/5134391/Anexo/Fotografia2.jpeg"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 301,
+            "id": 672100,
+            "url": "production/Minvivienda/5134391/Anexo/Fotografia3.jpeg"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 301,
+            "id": 672101,
+            "url": "production/Minvivienda/5134391/Anexo/Fotografia4.jpeg"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 308,
+            "id": 695661,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/AnexosComponentes/fotos.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 306,
+            "id": 777823,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/Dise%C3%B1o/2025-01-27%2015%3A21%3A08_1.PLANOS%20ESTRUCTURALES%20MODULO%20COCINA.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 306,
+            "id": 777824,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/Dise%C3%B1o/2025-01-27%2015%3A23%3A00_2.PLANOS%20ARQUITECTONICOS%20COCINA.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 306,
+            "id": 777825,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/Dise%C3%B1o/2025-01-27%2015%3A24%3A03_4.PLANOS%20HIDROSANITARIOS%20COCINA%20CI..pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 306,
+            "id": 777826,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/Dise%C3%B1o/2025-01-27%2015%3A25%3A19_3.PLANOS%20ELECTRICOS%20MODULO%20DE%20COCINA%20CIpdf.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 400,
+            "id": 980121,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/visitaDiagnostica/visitaDiagnostica.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 400,
+            "id": 980183,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/visitaDiagnostica/visitaDiagnostica.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 403,
+            "id": 1086301,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/RevisionDiagnostico/RevisionDiagnostico.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 308,
+            "id": 1124182,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/AnexosComponentes/Dise%C3%B1o%20Estructural%20COCINA%20CAMPO%20INFILTRACION.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 308,
+            "id": 1124183,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/AnexosComponentes/Dise%C3%B1o%20Arquitect%C3%B3nico%20COCINA%20CAMPO%20INFILTRACION.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 308,
+            "id": 1124184,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/AnexosComponentes/Dise%C3%B1o%20Hidrosanitario%20COCINA%20CAMPO%20INFILTRACION.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 308,
+            "id": 1124185,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/AnexosComponentes/Dise%C3%B1o%20Electrico%20COCINA%20CAMPO%20INFILTRACION.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 308,
+            "id": 1124186,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/AnexosComponentes/PRESUPUESTO%20COMPLETO%20COCINA%20CAMPO%20INFILTRACION.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 404,
+            "id": 1183413,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/RevisionEstructuracion/Revision%20Arquitectura.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 404,
+            "id": 1183414,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/RevisionEstructuracion/Revision%20Hidrosanitarios.pdf"
+        },
+        {
+            "associate_id": 34115,
+            "associate_to": "Diagnostic",
+            "document_type": 404,
+            "id": 1183415,
+            "url": "https://min-vivienda.s3.us-east-2.amazonaws.com/production/Minvivienda/5134391/RevisionEstructuracion/Revision%20Estructural.pdf"
+        }
+    ],
+    "full_name": "FABIO  ENRIQUE CACERES",
+    "id": 36898,
+    "id_home": "306459",
+    "last_name": "CACERES ",
+    "municipality": {
+        "code": "20001",
+        "id": 404,
+        "name": "VALLEDUPAR"
+    },
+    "name": "FABIO  ENRIQUE",
+    "ubication": "Rural",
+    "vereda": "ATANQUEZ"
+}
