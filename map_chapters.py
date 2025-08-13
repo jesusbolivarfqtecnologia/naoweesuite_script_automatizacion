@@ -71,16 +71,14 @@ def fetch_get_chapters(uris: Dict[str, Any], *, token: Optional[str] = None, ext
     raise RuntimeError("Respuesta inesperada del endpoint get_chapters")
 
 
-def build_mappings(chapters: List[Dict[str, Any]]) -> Tuple[Dict[str, str], Dict[str, str]]:
+def build_mappings(chapters: List[Dict[str, Any]]) -> Tuple[Dict[str, int], Dict[str, int]]:
     """Construye diccionarios de mapeo.
 
-    - apu_to_subcat_id: '1.10' -> '285865'
-    - code_to_category_id: '1' -> '1' (id de category.id en el payload del endpoint)
-
-    Se normalizan los valores de destino a str para mantener el tipo de datos de la estructura original.
+    - apu_to_subcat_id: '1.10' -> 285865 (id entero de subcategoría)
+    - code_to_category_id: '1' -> 1180 (id entero de categoría de item.id)
     """
-    apu_to_subcat_id: Dict[str, str] = {}
-    code_to_category_id: Dict[str, str] = {}
+    apu_to_subcat_id: Dict[str, int] = {}
+    code_to_category_id: Dict[str, int] = {}
 
     for item in chapters:
         # id externo del item (no confundir con category.id)
@@ -91,20 +89,28 @@ def build_mappings(chapters: List[Dict[str, Any]]) -> Tuple[Dict[str, str], Dict
             apu = sc.get("apu")
             sc_id = sc.get("id")
             if apu:
-                apu_to_subcat_id[str(apu)] = str(sc_id) if sc_id is not None else None  # type: ignore
+                # Mapear solo si el id es convertible a entero
+                try:
+                    if sc_id is not None:
+                        apu_to_subcat_id[str(apu)] = int(str(sc_id))
+                except Exception:
+                    pass
                 # Prefijo antes del punto
                 code_prefix = str(apu).split(".")[0]
                 if outer_id is not None:
-                    code_to_category_id[code_prefix] = str(outer_id)
+                    try:
+                        code_to_category_id[code_prefix] = int(str(outer_id))
+                    except Exception:
+                        pass
 
     return apu_to_subcat_id, code_to_category_id
 
 
-def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str], code_to_category_id: Dict[str, str]) -> Dict[str, Any]:
+def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, int], code_to_category_id: Dict[str, int]) -> Dict[str, Any]:
     """Aplica el mapeo a la estructura del JSON manteniendo la forma original.
 
-    - categories[*].id => tomar de code_to_category_id[codigo] si existe; si no, usar el valor original de 'codigo' como string
-    - categories[*].subcategories[*].id => reemplazar por apu_to_subcat_id[id] si existe (como str)
+    - categories[*].id => tomar de code_to_category_id[codigo] si existe; si no, usar el valor original de 'codigo' como entero si es dígito
+    - categories[*].subcategories[*].id => reemplazar por apu_to_subcat_id[id] si existe (como entero)
     """
     result = json.loads(json.dumps(data))  # copia profunda segura
     categories = result.get("categories") or []
@@ -114,7 +120,15 @@ def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str]
         new_id = None
         if original_code is not None:
             mapped = code_to_category_id.get(str(original_code))
-            new_id = mapped if mapped else str(original_code)
+            if mapped is not None:
+                new_id = mapped
+            else:
+                # Fallback: si el código original es numérico, convertir a int
+                try:
+                    if str(original_code).isdigit():
+                        new_id = int(str(original_code))
+                except Exception:
+                    pass
         if new_id is not None:
             cat["id"] = new_id
         # Eliminar 'codigo' para cumplir con el nuevo nombre
@@ -126,8 +140,15 @@ def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str]
             sc_id = sc.get("id")
             if sc_id is not None:
                 mapped_id = apu_to_subcat_id.get(str(sc_id))
-                if mapped_id:
+                if mapped_id is not None:
                     sc["id"] = mapped_id
+                else:
+                    # Si el id original es numérico puro, convertir a int
+                    try:
+                        if str(sc_id).isdigit():
+                            sc["id"] = int(str(sc_id))
+                    except Exception:
+                        pass
     return result
 
 

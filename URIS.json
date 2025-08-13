@@ -2,7 +2,7 @@
   "endpoints": {
     "get_users": {
       "description": "Obtiene la lista de los usuarios",
-      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiaries-refactory?order_by=id:desc",
+      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiaries-refactory?limit=1000000&order_by=id:desc",
       "method": "GET"
     },
     "get_beneficiary": {
