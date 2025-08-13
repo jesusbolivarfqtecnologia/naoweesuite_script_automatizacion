@@ -234,6 +234,7 @@ def main() -> None:
             user_map = None
 
     built = 0
+    skipped_false: list[dict] = []
     for p in sorted(mapped_dir.glob("*.json")):
         try:
             mapped = load_json(p)
@@ -263,7 +264,15 @@ def main() -> None:
 
         # Si no existe el usuario (exist=false), no construir payload
         if mapped.get("exist") is False:
-            print(f"[INFO] '{p.name}' exist=false; se omite payload")
+            skipped_false.append({
+                "file": p.name,
+                "beneficiary_document": normalize_digits(mapped.get("beneficiary_document")) or "",
+            })
+            print(f"[INFO] '{p.name}' exist=false; eliminar y omitir payload")
+            try:
+                p.unlink(missing_ok=True)
+            except Exception:
+                pass
             continue
 
         user_id = mapped.get("id")

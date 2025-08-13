@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "limpiar_no_payloads",
+			"type": "shell",
+			"command": "python - << 'PY'\nimport json, sys\nfrom pathlib import Path\nroot = Path(r'c:\\Users\\supor\\Downloads\\mejoramiento_naoweesuite\\script_automatizacion')\nout = root/'output_json'\nremoved = 0\nfor p in sorted(out.glob('*.json')):\n    try:\n        obj = json.loads(p.read_text(encoding='utf-8'))\n    except Exception:\n        try:\n            p.unlink()\n            removed += 1\n        except Exception:\n            pass\n        continue\n    if not (isinstance(obj, dict) and 'beneficiary_id' in obj):\n        try:\n            p.unlink()\n            removed += 1\n        except Exception:\n            pass\nprint(f\"[CLEAN] Eliminados {removed} no-payload(s) de {out}\")\nPY",
+			"args": []
+		}
+	]
+}

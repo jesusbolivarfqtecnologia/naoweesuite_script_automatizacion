@@ -121,7 +121,7 @@ def step_map_chapters(json_input_dir: Path, mapped_dir: Path, uris: Dict[str, An
     return count
 
 
-def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optional[str], extra_headers: Optional[Dict[str, str]], users_file: Optional[Path], beneficiary_file: Optional[Path], template_name: str) -> int:
+def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optional[str], extra_headers: Optional[Dict[str, str]], users_file: Optional[Path], beneficiary_file: Optional[Path], template_name: str) -> tuple[int, list[dict]]:
     # Preparar user_map
     user_map: Dict[str, Dict[str, Any]] = {}
     try:
@@ -156,6 +156,7 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
         print(f"[INFO] Beneficiary desde archivo local: {beneficiary_file}")
 
     built = 0
+    skipped_false: list[dict] = []
     for p in sorted(mapped_dir.glob("*.json")):
         try:
             data = _load_json(p)
@@ -177,6 +178,10 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
 
         # Si no existe el usuario (exist=false), no construir payload
         if data.get("exist") is False:
+            skipped_false.append({
+                "file": p.name,
+                "beneficiary_document": payloads.normalize_digits(data.get("beneficiary_document")) or "",
+            })
             print(f"[INFO] '{p.name}' exist=false; se omite payload")
             continue
 
@@ -199,7 +204,7 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
         built += 1
 
     print(f"[RESUMEN] Payloads generados: {built} en '{mapped_dir.resolve()}'")
-    return built
+    return built, skipped_false
 
 
 def parse_args() -> argparse.Namespace:
@@ -256,7 +261,7 @@ def main() -> None:
     # Paso 3 y 4: Enriquecer + Payload in-place
     users_file = Path(args.users_file) if args.users_file else None
     beneficiary_file = Path(args.beneficiary_file) if args.beneficiary_file else None
-    step_enrich_and_build(mapped_dir, uris, token, extra_headers, users_file, beneficiary_file, args.template)
+    built, skipped_false = step_enrich_and_build(mapped_dir, uris, token, extra_headers, users_file, beneficiary_file, args.template)
 
     # Paso final: Reemplazar output_json con el contenido final de mapped_dir
     try:
@@ -269,13 +274,22 @@ def main() -> None:
                 removed += 1
             except Exception:
                 pass
-        # Copiar finales
+        # Copiar solo payloads (archivos que tienen 'beneficiary_id' en el root)
         copied = 0
+        skipped = 0
         for m in mapped_dir.glob("*.json"):
-            dest = json_dir / m.name
-            shutil.copy2(m, dest)
-            copied += 1
-        print(f"[FINAL] Reemplazado '{json_dir.name}': quitados {removed}, copiados {copied} desde '{mapped_dir.name}'")
+            try:
+                obj = _load_json(m)
+            except Exception:
+                skipped += 1
+                continue
+            if isinstance(obj, dict) and "beneficiary_id" in obj:
+                dest = json_dir / m.name
+                shutil.copy2(m, dest)
+                copied += 1
+            else:
+                skipped += 1
+        print(f"[FINAL] Reemplazado '{json_dir.name}': quitados {removed}, copiados {copied} payload(s), omitidos {skipped}")
     except Exception as e:
         print(f"[WARN] No se pudo reemplazar '{json_dir}': {e}")
 
