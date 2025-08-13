@@ -13,7 +13,7 @@
     },
     "update_budget": {
       "description": "Actualiza un presupuesto",
-      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/update-budget/categories/subcategories/quantity/",
+      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/update-budget/categories/subcategories/quantity/{{budget_id}}",
       "method": "PUT",
       "payload_template": "budget_payload"
     }
