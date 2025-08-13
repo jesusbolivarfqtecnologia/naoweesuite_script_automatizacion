@@ -130,7 +130,16 @@ def main() -> None:
             print(f"[WARN] No se pudo leer '{p.name}': {e}")
             continue
 
-        ced = normalize_digits(data.get("cedula"))
+        # Renombrar 'cedula' -> 'beneficiary_document' como string
+        if "cedula" in data and "beneficiary_document" not in data:
+            try:
+                data["beneficiary_document"] = str(data.get("cedula") or "")
+                del data["cedula"]
+            except Exception:
+                data["beneficiary_document"] = str(data.get("cedula"))
+                data.pop("cedula", None)
+
+        ced = normalize_digits(data.get("beneficiary_document")) or normalize_digits(data.get("cedula"))
         info = user_map.get(ced)
 
         # Asegurar llaves presentes; si no hay match, se establecen en null
@@ -143,10 +152,10 @@ def main() -> None:
             data.setdefault("id", None)
             data["exist"] = False
 
-        out_path = out_dir / p.name
-        save_json(out_path, data)
-        print(f"[OK] Actualizado -> {out_path}")
-        updated += 1
+    out_path = out_dir / p.name
+    save_json(out_path, data)
+    print(f"[OK] Actualizado -> {out_path}")
+    updated += 1
 
     print(f"[RESUMEN] Archivos actualizados: {updated} en '{out_dir.resolve()}'")
 

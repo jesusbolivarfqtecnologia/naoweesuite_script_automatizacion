@@ -5,14 +5,14 @@
       "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiaries-refactory?order_by=id:desc",
       "method": "GET"
     },
+    "get_beneficiary": {
+      "description": "Obtiene el beneficiario con relaciones por user_id",
+      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiary-with-relationship/{{user_id}}",
+      "method": "GET"
+    },
     "get_chapters": {
       "description": "Obtiene la lista de los capitulos y actividades en el cesar que es el id 9",
       "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/region-category/9",
-      "method": "GET"
-    },
-    "get_beneficiary": {
-      "description": "Obtiene la lista de los capitulos y actividades en el cesar que es el id 9",
-      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiary-with-relationship/{{user_id}}",
       "method": "GET"
     },
     "create_budget": {

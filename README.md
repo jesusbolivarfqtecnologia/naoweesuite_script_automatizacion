@@ -69,3 +69,39 @@ python map_chapters.py --input-dir output_json --output-dir output_json_mapped -
 Notas:
 - También puedes pasar `--auth-token` para sobrescribir el token de `config.json`.
 - Para pruebas sin red, usa `--chapters-file sample_chapters.json`.
+
+## Enriquecer JSONs con budget_id e id (get_users)
+
+Usa `enrich_users.py` para cruzar por cédula contra `get_users` y actualizar `budget_id`, `id` y la bandera `exist`.
+
+```powershell
+python enrich_users.py --mapped-dir output_json_mapped --config config.json --uris URIS.json
+# Modo offline
+python enrich_users.py --mapped-dir output_json_mapped --users-file sample_users.json
+```
+
+Salida: sobreescribe por defecto en `output_json_mapped`. Puedes especificar `--output-dir`.
+
+## Construcción de payloads (get_beneficiary)
+
+Usa `build_payloads.py` para crear un payload por archivo (por defecto sobreescribe en `output_json_mapped`) tomando la plantilla `payload_templates.budget_payload.reference` de `URIS.json`.
+
+Reglas de llenado:
+- `beneficiary_id` = `id` del JSON mapeado (proveniente de `get_users`).
+- `contractor_id`, `contract_id`, `department_id`, `municipality_id` se obtienen de `get_beneficiary({{user_id}})` donde `{{user_id}}` se reemplaza por el `id` del JSON.
+- `categories` se toma del propio JSON mapeado.
+- `update_aiu` = `true` si `budget_id` no es null, en caso contrario `false`.
+
+Ejemplos:
+
+```powershell
+# Por defecto escribe en la misma carpeta mapped (in-place)
+python build_payloads.py --mapped-dir output_json_mapped --config config.json --uris URIS.json
+# Modo offline usando un beneficiary de ejemplo
+python build_payloads.py --mapped-dir output_json_mapped --beneficiary-file sample_beneficiary.json
+# Opcional: enviar a otra carpeta
+python build_payloads.py --mapped-dir output_json_mapped --payload-dir output_payloads
+```
+
+Notas:
+- El campo `cedula` se renombra automáticamente a `beneficiary_document` (string) en los JSON mapeados y se incluye en el payload resultante para trazabilidad.
