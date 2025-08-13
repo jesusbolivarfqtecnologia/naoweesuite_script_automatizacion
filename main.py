@@ -438,14 +438,21 @@ def procesar_archivo(
 	apu_ws = wb["APU"]
 	cedula = leer_cedula(apu_ws)
 
-	# Hoja siguiente a APU
+	# Hoja objetivo: preferir 'CANT. BENEFICIARIO 1' si existe; si no, usar la siguiente a APU
 	next_index = apu_index + 1
 	if next_index >= len(wb.sheetnames):
 		print(f"[ADVERTENCIA] No existe hoja siguiente a 'APU' en '{xlsx_path.name}'. Se omite.")
 		return None
 
+	desired_name = "CANT. BENEFICIARIO 1"
 	next_sheet_name = wb.sheetnames[next_index]
-	ws_target = wb[next_sheet_name]
+	# Si la hoja inmediata no es la deseada, pero existe la deseada en el libro, usarla
+	if next_sheet_name != desired_name and desired_name in wb.sheetnames:
+		target_sheet_name = desired_name
+	else:
+		target_sheet_name = next_sheet_name
+
+	ws_target = wb[target_sheet_name]
 
 	subcats = extraer_datos_hoja(
 		ws_target,
