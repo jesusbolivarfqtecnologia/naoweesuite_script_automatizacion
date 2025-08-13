@@ -80,6 +80,98 @@ def _preflight_auth_or_exit(uris: Dict[str, Any], token: Optional[str], extra_he
     return True
 
 
+def step_submit_payloads(mapped_dir: Path, uris: Dict[str, Any], token: Optional[str], extra_headers: Optional[Dict[str, str]]) -> tuple[int, int]:
+    """Envía los payloads generados en mapped_dir usando create/update según update_aiu.
+    No muta los archivos; remueve budget_id solo del cuerpo enviado.
+    Devuelve (enviados_ok, fallidos).
+    """
+    ep_create = uris.get("endpoints", {}).get("create_budget") or {}
+    ep_update = uris.get("endpoints", {}).get("update_budget") or {}
+
+    sent_ok = 0
+    failed = 0
+    for p in sorted(mapped_dir.glob("*.json")):
+        try:
+            obj = _load_json(p)
+        except Exception as e:
+            print(f"[WARN] No se pudo leer '{p.name}' para envío: {e}")
+            failed += 1
+            continue
+        if not (isinstance(obj, dict) and "beneficiary_id" in obj):
+            # No es un payload
+            continue
+
+        update_aiu = bool(obj.get("update_aiu"))
+        budget_id = obj.get("budget_id")
+        # Preparar body sin budget_id
+        try:
+            body = json.loads(json.dumps(obj))
+        except Exception:
+            body = obj.copy()
+        body.pop("budget_id", None)
+
+        if update_aiu:
+            # update -> requiere budget_id en path
+            if budget_id is None:
+                print(f"[WARN] '{p.name}' update_aiu=true pero sin budget_id; se omite envío")
+                failed += 1
+                continue
+            url = str(ep_update.get("uri", "")).replace("{{budget_id}}", str(budget_id))
+            method = (ep_update.get("method") or "PUT").upper()
+            ep_headers = ep_update.get("headers") if isinstance(ep_update.get("headers"), dict) else {}
+        else:
+            # create -> nunca enviar budget_id en el body
+            url = str(ep_create.get("uri", ""))
+            method = (ep_create.get("method") or "POST").upper()
+            ep_headers = ep_create.get("headers") if isinstance(ep_create.get("headers"), dict) else {}
+
+        if not url:
+            print(f"[WARN] '{p.name}' sin URL configurada para el endpoint correspondiente; se omite")
+            failed += 1
+            continue
+
+        headers: Dict[str, str] = {}
+        # headers del endpoint
+        headers.update({str(k): str(v) for k, v in ep_headers.items()})
+        # headers globales de config
+        if extra_headers:
+            headers.update(extra_headers)
+        # auth
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        # content-type json por defecto
+        headers.setdefault("Content-Type", "application/json")
+
+        try:
+            if method == "POST":
+                r = requests.post(url, headers=headers, json=body, timeout=30)
+            elif method == "PUT":
+                r = requests.put(url, headers=headers, json=body, timeout=30)
+            else:
+                print(f"[WARN] Método no soportado para envío: {method}")
+                failed += 1
+                continue
+        except Exception as e:
+            print(f"[ERROR] Envío fallido para '{p.name}': {e}")
+            failed += 1
+            continue
+
+        # Interpretar resultado
+        if 200 <= r.status_code < 300:
+            print(f"[SENT] {method} {url} <- {p.name} [{r.status_code}]")
+            sent_ok += 1
+        else:
+            try:
+                err = r.json()
+            except Exception:
+                err = r.text
+            print(f"[FAIL] {method} {url} <- {p.name} [{r.status_code}]: {err}")
+            failed += 1
+
+    print(f"[RESUMEN] Envíos: OK={sent_ok}, FAIL={failed}")
+    return sent_ok, failed
+
+
 def step_extract_xlsx_to_json(input_dir: Path, output_dir: Path, args) -> List[Path]:
     # Buscar .xlsx recursivamente (excluye temporales ~) en todo input_dir
     if not input_dir.exists():
@@ -277,6 +369,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--budget-id", type=int, default=None)
     p.add_argument("--budget-map", default=None, help="Ruta a JSON {\"<archivo.json>\": budget_id}")
     p.add_argument("--template", default="budget_payload")
+    p.add_argument("--no-submit", action="store_true", help="No enviar payloads (por defecto se envían)")
     return p.parse_args()
 
 
@@ -291,7 +384,9 @@ def main() -> None:
     token, extra_headers = _resolve_auth(config, args.auth_token)
 
     # Pre-chequeo de token antes de cualquier procesamiento costoso
-    need_online = not (args.chapters_file and args.users_file and args.beneficiary_file)
+    offline_ready = bool(args.chapters_file and args.users_file and args.beneficiary_file)
+    submit_enabled = not args.no_submit
+    need_online = (not offline_ready) or submit_enabled
     if not _preflight_auth_or_exit(uris, token, extra_headers, need_online=need_online):
         return
 
@@ -312,6 +407,13 @@ def main() -> None:
     users_file = Path(args.users_file) if args.users_file else None
     beneficiary_file = Path(args.beneficiary_file) if args.beneficiary_file else None
     built, skipped_false = step_enrich_and_build(mapped_dir, uris, token, extra_headers, users_file, beneficiary_file, args.template)
+
+    # Paso 4.5: Envío (por defecto activo; se puede desactivar con --no-submit)
+    if submit_enabled:
+        # Revalidación rápida (por si se corrió en modo 100% offline sin token)
+        if not _preflight_auth_or_exit(uris, token, extra_headers, need_online=True):
+            return
+        step_submit_payloads(mapped_dir, uris, token, extra_headers)
 
     # Paso final: Reemplazar output_json con el contenido final de mapped_dir
     try:
