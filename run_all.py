@@ -36,7 +36,10 @@ def _resolve_auth(config: Dict[str, Any], cli_token: Optional[str]) -> Tuple[Opt
 
 
 def step_extract_xlsx_to_json(input_dir: Path, output_dir: Path, args) -> List[Path]:
-    excels = extractor.listar_excels(input_dir)
+    # Buscar .xlsx recursivamente (excluye temporales ~) en todo input_dir
+    if not input_dir.exists():
+        input_dir.mkdir(parents=True, exist_ok=True)
+    excels = [p for p in input_dir.rglob("*.xlsx") if not p.name.startswith("~$")]
     if not excels:
         print(f"[INFO] No hay .xlsx en '{input_dir.resolve()}'. Se omite extracción.")
         return []
