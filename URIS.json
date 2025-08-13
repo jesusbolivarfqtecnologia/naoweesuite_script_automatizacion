@@ -1,0 +1,43 @@
+{
+  "endpoints": {
+    "get_users": {
+      "description": "Obtiene la lista de los usuarios",
+      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiaries-refactory?order_by=id:desc",
+      "method": "GET"
+    },
+    "create_budget": {
+      "description": "Crea un nuevo presupuesto",
+      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/create-budget/categories/subcategories/quantity",
+      "method": "POST",
+      "payload_template": "budget_payload"
+    },
+    "update_budget": {
+      "description": "Actualiza un presupuesto",
+      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/update-budget/categories/subcategories/quantity/",
+      "method": "PUT",
+      "payload_template": "budget_payload"
+    }
+  },
+  "payload_templates": {
+    "budget_payload": {
+      "reference": {
+        "beneficiary_id": "{{beneficiary_id}}",
+        "code": "presupuesto_ENT",
+        "total_diagnosis": 1300000,
+        "improvement_type_id": 90,
+        "improvement_type": "Locativo",
+        "contractor_id": "{{contractor_id}}",
+        "contract_id": "{{contract_id}}",
+        "department_id": "{{department_id}}",
+        "municipality_id": "{{municipality_id}}",
+        "data": {
+          "specific_improvement_type_locative": [106],
+          "specific_improvement_type_locative_mixto": null
+        },
+        "is_contractor": false,
+        "categories": "{{categories}}",
+        "update_aiu": "{{update_aiu}}"
+      }
+    }
+  }
+}
