@@ -46,3 +46,26 @@ Parámetros principales (opcionales) del extractor:
 - `--code-col` (por defecto `B`) y `--code-row-start` (por defecto `9`)
 - `--elem-col-start` (por defecto `F`) y `--elem-row-start` (por defecto `12`)
 - `--elem-col-end` (por defecto `S`) y `--elem-row-end` (por defecto `27`)
+
+## Mapeo de códigos/ids con get_chapters
+
+Usa `map_chapters.py` para reemplazar `categories[].codigo` y `subcategories[].id` con los IDs reales del endpoint `get_chapters`.
+
+1) Copia `config.example.json` a `config.json` y pega tu token Bearer:
+
+```json
+{
+  "auth": { "token": "TU_TOKEN" },
+  "headers": { "Accept": "application/json" }
+}
+```
+
+2) Ejecuta el mapeo (ya está `requests` en `requirements.txt`):
+
+```powershell
+python map_chapters.py --input-dir output_json --output-dir output_json_mapped --config config.json --uris URIS.json
+```
+
+Notas:
+- También puedes pasar `--auth-token` para sobrescribir el token de `config.json`.
+- Para pruebas sin red, usa `--chapters-file sample_chapters.json`.

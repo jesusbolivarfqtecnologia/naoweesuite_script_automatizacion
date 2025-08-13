@@ -1,0 +1,8 @@
+{
+  "auth": {
+    "token": ""
+  },
+  "headers": {
+    "Accept": "application/json"
+  }
+}
