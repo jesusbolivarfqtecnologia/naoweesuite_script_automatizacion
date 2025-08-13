@@ -1,5 +1,6 @@
 import argparse
 import json
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -248,6 +249,42 @@ def main() -> None:
     users_file = Path(args.users_file) if args.users_file else None
     beneficiary_file = Path(args.beneficiary_file) if args.beneficiary_file else None
     step_enrich_and_build(mapped_dir, uris, token, extra_headers, users_file, beneficiary_file, args.template)
+
+    # Paso final: Reemplazar output_json con el contenido final de mapped_dir
+    try:
+        json_dir.mkdir(parents=True, exist_ok=True)
+        # Limpiar JSON existentes
+        removed = 0
+        for p in json_dir.glob("*.json"):
+            try:
+                p.unlink()
+                removed += 1
+            except Exception:
+                pass
+        # Copiar finales
+        copied = 0
+        for m in mapped_dir.glob("*.json"):
+            dest = json_dir / m.name
+            shutil.copy2(m, dest)
+            copied += 1
+        print(f"[FINAL] Reemplazado '{json_dir.name}': quitados {removed}, copiados {copied} desde '{mapped_dir.name}'")
+    except Exception as e:
+        print(f"[WARN] No se pudo reemplazar '{json_dir}': {e}")
+
+    # Limpiar carpeta mapped_dir
+    try:
+        if mapped_dir.exists():
+            for p in mapped_dir.glob("*"):
+                try:
+                    if p.is_file() or p.is_symlink():
+                        p.unlink(missing_ok=True)
+                except Exception:
+                    pass
+            # Eliminar directorio vacío
+            mapped_dir.rmdir()
+            print(f"[CLEANUP] Eliminada carpeta '{mapped_dir.name}'")
+    except Exception as e:
+        print(f"[WARN] No se pudo eliminar '{mapped_dir}': {e}")
 
 
 if __name__ == "__main__":
