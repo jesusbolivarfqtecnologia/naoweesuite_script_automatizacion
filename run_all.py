@@ -35,6 +35,51 @@ def _resolve_auth(config: Dict[str, Any], cli_token: Optional[str]) -> Tuple[Opt
     return token, extra_headers
 
 
+def _preflight_auth_or_exit(uris: Dict[str, Any], token: Optional[str], extra_headers: Optional[Dict[str, str]], *, need_online: bool) -> bool:
+    """Valida el token antes de iniciar el pipeline. Devuelve True si todo OK; False si se debe abortar.
+    Solo valida si need_online=True (es decir, se usará al menos un endpoint online).
+    """
+    if not need_online:
+        return True
+    if not token:
+        print("[ERROR] No hay token de autenticación y se requieren endpoints online. Agrega el token en config.json o usa --auth-token.")
+        return False
+    # Usar get_users como verificación rápida
+    ep = uris.get("endpoints", {}).get("get_users")
+    if not ep:
+        # Si no hay endpoint de users, no podemos validar aquí; continuar.
+        return True
+    url = ep.get("uri")
+    method = (ep.get("method") or "GET").upper()
+    if method != "GET":
+        return True
+    headers: Dict[str, str] = {}
+    cfg_headers = ep.get("headers")
+    if isinstance(cfg_headers, dict):
+        headers.update({str(k): str(v) for k, v in cfg_headers.items()})
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    if extra_headers:
+        headers.update(extra_headers)
+    try:
+        resp = requests.get(url, headers=headers or None, timeout=10)
+    except Exception as e:
+        print(f"[WARN] No se pudo validar el token (red): {e}. Se continuará, pero podría fallar luego.")
+        return True
+    # Si el servidor responde con error explícito de token inválido, abortar
+    try:
+        data = resp.json()
+    except Exception:
+        data = None
+    if isinstance(data, dict) and str(data.get("error", "")).lower() == "invalid token":
+        print("[ERROR] Token inválido. Reemplaza el token en config.json o pasa --auth-token=<TOKEN>. Se aborta antes de procesar XLSX.")
+        return False
+    if resp.status_code == 401:
+        print("[ERROR] Autenticación fallida (401). Reemplaza el token en config.json o pasa --auth-token=<TOKEN>. Se aborta antes de procesar XLSX.")
+        return False
+    return True
+
+
 def step_extract_xlsx_to_json(input_dir: Path, output_dir: Path, args) -> List[Path]:
     # Buscar .xlsx recursivamente (excluye temporales ~) en todo input_dir
     if not input_dir.exists():
@@ -244,6 +289,11 @@ def main() -> None:
     uris = mapper.load_uris(Path(args.uris))
     config = mapper.load_config(Path(args.config))
     token, extra_headers = _resolve_auth(config, args.auth_token)
+
+    # Pre-chequeo de token antes de cualquier procesamiento costoso
+    need_online = not (args.chapters_file and args.users_file and args.beneficiary_file)
+    if not _preflight_auth_or_exit(uris, token, extra_headers, need_online=need_online):
+        return
 
     # Paso 1: XLSX -> JSON
     step_extract_xlsx_to_json(input_dir, json_dir, args)
