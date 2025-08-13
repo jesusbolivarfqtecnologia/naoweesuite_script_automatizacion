@@ -5,6 +5,20 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from openpyxl import load_workbook
+# Evitar el parseo de dibujos/imágenes de openpyxl que puede ser muy costoso y provocar bloqueos
+try:
+	import openpyxl.reader.drawings as _oxl_drawings  # type: ignore
+
+	def _skip_find_images(archive, reltarget):
+		# Retorna tuplas vacías (charts, images) para omitir el procesamiento de dibujos
+		return ([], [])
+
+	# Monkeypatch seguro y reversible en tiempo de ejecución
+	if hasattr(_oxl_drawings, "find_images"):
+		_oxl_drawings.find_images = _skip_find_images  # type: ignore
+except Exception:
+	# Si por alguna razón falla, continuamos sin el parche.
+	pass
 from openpyxl.utils import column_index_from_string
 
 
@@ -425,7 +439,9 @@ def procesar_archivo(
 	}
 	"""
 	try:
-		wb = load_workbook(filename=str(xlsx_path), data_only=True)
+		# Abrir sin read_only para evitar el streaming lento al acceder celdas arbitrarias;
+		# mantener data_only y keep_links=False para rendimiento
+		wb = load_workbook(filename=str(xlsx_path), data_only=True, keep_links=False)
 	except Exception as exc:
 		print(f"[ERROR] No se pudo abrir '{xlsx_path.name}': {exc}")
 		return None
