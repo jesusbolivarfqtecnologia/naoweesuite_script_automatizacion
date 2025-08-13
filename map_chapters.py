@@ -130,7 +130,16 @@ def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str]
         new_id = None
         if original_code is not None:
             mapped = code_to_category_id.get(str(original_code))
-            new_id = mapped if mapped else str(original_code)
+            # Preferir id numérico
+            try:
+                if mapped is not None and str(mapped).isdigit():
+                    new_id = int(str(mapped))
+                elif str(original_code).isdigit():
+                    new_id = int(str(original_code))
+                else:
+                    new_id = mapped if mapped is not None else str(original_code)
+            except Exception:
+                new_id = mapped if mapped is not None else str(original_code)
         if new_id is not None:
             cat["id"] = new_id
         # Eliminar 'codigo' para cumplir con el nuevo nombre
@@ -143,14 +152,32 @@ def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str]
             sc_id = sc.get("id")
             if sc_id is not None:
                 mapped_id = apu_to_subcat_id.get(str(sc_id))
-                if mapped_id:
-                    sc["id"] = mapped_id
+                if mapped_id is not None:
+                    # Forzar entero si es dígito
+                    try:
+                        sc["id"] = int(str(mapped_id)) if str(mapped_id).isdigit() else mapped_id
+                    except Exception:
+                        sc["id"] = mapped_id
+                else:
+                    # Si el id original es numérico, convertir a int
+                    try:
+                        if str(sc_id).isdigit():
+                            sc["id"] = int(str(sc_id))
+                    except Exception:
+                        pass
             # Enriquecimiento con metadatos
             meta = apu_to_meta.get(str(original_apu)) if original_apu is not None else None
             if isinstance(meta, dict):
                 sc["apu"] = meta.get("apu", str(original_apu))
-                # Fallback de category_id al id de categoría ya resuelto
-                sc["category_id"] = meta.get("category_id") or new_id
+                # Fallback de category_id al id de categoría ya resuelto, forzando número cuando sea posible
+                cat_id_val = meta.get("category_id") if meta.get("category_id") is not None else new_id
+                try:
+                    if cat_id_val is not None and str(cat_id_val).isdigit():
+                        sc["category_id"] = int(str(cat_id_val))
+                    else:
+                        sc["category_id"] = cat_id_val
+                except Exception:
+                    sc["category_id"] = cat_id_val
                 if "name" in meta:
                     sc["name"] = meta["name"]
                 if "unit" in meta:
@@ -158,7 +185,14 @@ def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str]
             else:
                 if original_apu is not None:
                     sc["apu"] = str(original_apu)
-                sc["category_id"] = new_id
+                # Fallback de category_id al id de la categoría resuelta, intentando int
+                try:
+                    if new_id is not None and str(new_id).isdigit():
+                        sc["category_id"] = int(str(new_id))
+                    else:
+                        sc["category_id"] = new_id
+                except Exception:
+                    sc["category_id"] = new_id
     return result
 
 
