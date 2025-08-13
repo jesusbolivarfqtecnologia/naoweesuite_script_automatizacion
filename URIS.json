@@ -46,7 +46,8 @@
         },
         "is_contractor": false,
         "categories": "{{categories}}",
-        "update_aiu": "{{update_aiu}}"
+  "update_aiu": "{{update_aiu}}",
+  "budget_id": "{{budget_id}}"
       }
     }
   }

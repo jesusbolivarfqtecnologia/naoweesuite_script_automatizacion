@@ -145,6 +145,7 @@ def build_payload(reference: Dict[str, Any], mapped: Dict[str, Any], beneficiary
     payload["municipality_id"] = municipality_id
     payload["categories"] = categories
     payload["update_aiu"] = bool(budget_id is not None)
+    payload["budget_id"] = budget_id
     # Añadir beneficiary_document para trazabilidad según solicitud
     payload["beneficiary_document"] = beneficiary_document
 
