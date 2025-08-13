@@ -103,17 +103,23 @@ def build_mappings(chapters: List[Dict[str, Any]]) -> Tuple[Dict[str, str], Dict
 def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str], code_to_category_id: Dict[str, str]) -> Dict[str, Any]:
     """Aplica el mapeo a la estructura del JSON manteniendo la forma original.
 
-    - categories[*].codigo => reemplazar por code_to_category_id[codigo] si existe (como str)
+    - categories[*].id => tomar de code_to_category_id[codigo] si existe; si no, usar el valor original de 'codigo' como string
     - categories[*].subcategories[*].id => reemplazar por apu_to_subcat_id[id] si existe (como str)
     """
     result = json.loads(json.dumps(data))  # copia profunda segura
     categories = result.get("categories") or []
     for cat in categories:
-        codigo = cat.get("codigo")
-        if codigo is not None:
-            mapped = code_to_category_id.get(str(codigo))
-            if mapped:
-                cat["codigo"] = mapped
+        # Resolver id de categoría
+        original_code = cat.get("codigo") if "codigo" in cat else cat.get("id")
+        new_id = None
+        if original_code is not None:
+            mapped = code_to_category_id.get(str(original_code))
+            new_id = mapped if mapped else str(original_code)
+        if new_id is not None:
+            cat["id"] = new_id
+        # Eliminar 'codigo' para cumplir con el nuevo nombre
+        if "codigo" in cat:
+            del cat["codigo"]
 
         subcats = cat.get("subcategories") or []
         for sc in subcats:
