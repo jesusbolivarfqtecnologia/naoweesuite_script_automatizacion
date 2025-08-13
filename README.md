@@ -91,6 +91,7 @@ Reglas de llenado:
 - `contractor_id`, `contract_id`, `department_id`, `municipality_id` se obtienen de `get_beneficiary({{user_id}})` donde `{{user_id}}` se reemplaza por el `id` del JSON.
 - `categories` se toma del propio JSON mapeado.
 - `update_aiu` = `true` si `budget_id` no es null, en caso contrario `false`.
+- Si `exist` es `false` (no hubo match de usuario), no se genera payload para ese archivo.
 
 Ejemplos:
 

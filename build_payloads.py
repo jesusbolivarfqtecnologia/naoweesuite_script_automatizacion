@@ -261,6 +261,11 @@ def main() -> None:
                 mapped.setdefault("id", None)
                 mapped["exist"] = False
 
+        # Si no existe el usuario (exist=false), no construir payload
+        if mapped.get("exist") is False:
+            print(f"[INFO] '{p.name}' exist=false; se omite payload")
+            continue
+
         user_id = mapped.get("id")
         if user_id is None and not beneficiary_offline:
             print(f"[WARN] '{p.name}' no tiene 'id' y no hay beneficiary offline; se omite")

@@ -175,6 +175,11 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
             data.setdefault("id", None)
             data["exist"] = False
 
+        # Si no existe el usuario (exist=false), no construir payload
+        if data.get("exist") is False:
+            print(f"[INFO] '{p.name}' exist=false; se omite payload")
+            continue
+
         user_id = data.get("id")
         if user_id is None and not beneficiary_offline:
             print(f"[WARN] '{p.name}' no tiene 'id' y no hay beneficiary offline; se omite payload")
