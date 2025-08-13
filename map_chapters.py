@@ -19,6 +19,24 @@ def load_config(config_path: Path) -> Dict[str, Any]:
         return json.load(f)
 
 
+def load_budget_map(path: Optional[str]) -> Dict[str, Any]:
+    """Carga un mapa opcional de budget_id por archivo: {"1.json": 123, ...}."""
+    if not path:
+        return {}
+    p = Path(path)
+    if not p.exists():
+        print(f"[WARN] budget-map no existe: {p}")
+        return {}
+    try:
+        with p.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+    except Exception as e:
+        print(f"[WARN] No se pudo leer budget-map: {e}")
+    return {}
+
+
 def fetch_get_chapters(uris: Dict[str, Any], *, token: Optional[str] = None, extra_headers: Optional[Dict[str, str]] = None) -> List[Dict[str, Any]]:
     """Obtiene los datos del endpoint get_chapters.
 
@@ -125,6 +143,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="config.json", help="Ruta a archivo de configuración (por defecto: config.json)")
     parser.add_argument("--auth-token", default=None, help="Token para Authorization: Bearer <token> (prioriza sobre config)")
     parser.add_argument("--chapters-file", default=None, help="Ruta a JSON local con la respuesta de get_chapters (modo offline)")
+    parser.add_argument("--budget-id", type=int, default=None, help="Asignar un budget_id fijo a todos los archivos (opcional)")
+    parser.add_argument(
+        "--budget-map",
+        default=None,
+        help="Ruta a JSON con mapa por archivo: {\"1.json\": 123, ...}; tiene prioridad sobre --budget-id",
+    )
     return parser.parse_args()
 
 
@@ -176,6 +200,7 @@ def main() -> None:
     print(f"[INFO] Mapeos: apu->id={len(apu_to_subcat_id)}, code->category_id={len(code_to_category_id)}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    budget_map = load_budget_map(args.budget_map)
     files = list_json_files(input_dir)
     if not files:
         print(f"[INFO] No se encontraron JSON en {input_dir.resolve()}")
@@ -191,6 +216,18 @@ def main() -> None:
             continue
 
         new_data = transform_budget_json(data, apu_to_subcat_id, code_to_category_id)
+
+        # Resolver budget_id (prioridad: budget_map[filename] -> --budget-id -> data.get("budget_id") -> None)
+        filename = p.name
+        if filename in budget_map:
+            resolved_budget_id = budget_map.get(filename)
+        elif args.budget_id is not None:
+            resolved_budget_id = args.budget_id
+        else:
+            resolved_budget_id = data.get("budget_id")
+
+        # Asegurar clave presente, aunque sea None (null)
+        new_data["budget_id"] = resolved_budget_id if resolved_budget_id is not None else None
         out_path = output_dir / p.name
         with out_path.open("w", encoding="utf-8") as f:
             json.dump(new_data, f, ensure_ascii=False, indent=2)
