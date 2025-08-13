@@ -5,6 +5,11 @@
       "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiaries-refactory?order_by=id:desc",
       "method": "GET"
     },
+    "get_chapters": {
+      "description": "Obtiene la lista de los capitulos y actividades en el cesar que es el id 9",
+      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/region-category/9",
+      "method": "GET"
+    },
     "create_budget": {
       "description": "Crea un nuevo presupuesto",
       "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/create-budget/categories/subcategories/quantity",
