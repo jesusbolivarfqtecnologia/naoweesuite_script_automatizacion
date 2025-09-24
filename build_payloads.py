@@ -129,7 +129,7 @@ def build_payload(reference: Dict[str, Any], mapped: Dict[str, Any], beneficiary
     municipality = beneficiary.get("municipality") if isinstance(beneficiary, dict) else None
 
     if isinstance(contractor, dict):
-        contractor_id = contractor.get("id")
+        contractor_id = contractor.get("contractor_id")
     if isinstance(contract, dict):
         contract_id = contract.get("id")
     if isinstance(department, dict):
@@ -139,12 +139,19 @@ def build_payload(reference: Dict[str, Any], mapped: Dict[str, Any], beneficiary
 
     # Reemplazar placeholders del template por valores con el tipo correcto
     payload["beneficiary_id"] = beneficiary_id
-    payload["contractor_id"] = contractor_id
+    # Forzar contractor_id como string si existe (requerimiento del usuario)
+    if contractor_id is not None:
+        try:
+            payload["contractor_id"] = str(contractor_id)
+        except Exception:
+            payload["contractor_id"] = contractor_id
+    else:
+        payload["contractor_id"] = contractor_id
     payload["contract_id"] = contract_id
     payload["department_id"] = department_id
     payload["municipality_id"] = municipality_id
     payload["categories"] = categories
-    payload["update_aiu"] = bool(budget_id is not None)
+    payload["update_aiu"] = bool(False)
     payload["budget_id"] = budget_id
     # Añadir beneficiary_document para trazabilidad según solicitud
     payload["beneficiary_document"] = beneficiary_document

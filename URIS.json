@@ -2,28 +2,28 @@
   "endpoints": {
     "get_users": {
       "description": "Obtiene la lista de los usuarios",
-      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiaries-refactory?limit=1000000&order_by=id:desc",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiaries-refactory?limit=1000000&order_by=id:desc",
       "method": "GET"
     },
     "get_beneficiary": {
       "description": "Obtiene el beneficiario con relaciones por user_id",
-      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/beneficiary-with-relationship/{{user_id}}",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiary-with-relationship/{{user_id}}",
       "method": "GET"
     },
     "get_chapters": {
       "description": "Obtiene la lista de los capitulos y actividades en el cesar que es el id 9",
-      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/region-category/9",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/region-category/9",
       "method": "GET"
     },
     "create_budget": {
       "description": "Crea un nuevo presupuesto",
-      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/create-budget/categories/subcategories/quantity",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/create-budget/categories/subcategories/quantity",
       "method": "POST",
       "payload_template": "budget_payload"
     },
     "update_budget": {
       "description": "Actualiza un presupuesto",
-      "uri": "https://pres-back-v2-enterritorio.naoweesuite.com/update-budget/categories/subcategories/quantity/{{budget_id}}",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/update-budget/categories/subcategories/quantity/{{budget_id}}",
       "method": "PUT",
       "payload_template": "budget_payload"
     }
@@ -33,21 +33,39 @@
       "reference": {
         "beneficiary_id": "{{beneficiary_id}}",
         "code": "presupuesto_ENT",
-        "total_diagnosis": 1300000,
-        "improvement_type_id": 90,
-        "improvement_type": "Locativo",
         "contractor_id": "{{contractor_id}}",
         "contract_id": "{{contract_id}}",
-        "department_id": "{{department_id}}",
-        "municipality_id": "{{municipality_id}}",
+        "resolution_id": 9,
+        "department_id": 9,
+        "municipality_id": 426,
+        "village": "media luna ",
+        "scheme_type_id": 50,
+        "beneficiary_document": "49787219",
+        "minimum_salary_id": 52,
+        "minimum_salary": 1300000,
+        "department": "CESAR",
+        "municipality": "SAN DIEGO",
+        "improvement_type_id": 90,
+        "improvement_type": "Locativo",
+        "specific_improvement_id": null,
+        "specific_improvement": "",
+        "valid_year": "2024",
+        "presentation_date": "2025-08-14",
+        "legal_minimum_wages": 18,
+        "total_value": 23400000,
+        "total_diagnosis": 1300000,
+        "subtotal_direct_costs": 227108,
+        "subtotal_indirect_costs": 56779,
+        "total_budget": 1583887,
+        "total_days_execution": 0,
+        "value_redounded": "1583887",
         "data": {
           "specific_improvement_type_locative": [106],
           "specific_improvement_type_locative_mixto": null
         },
         "is_contractor": false,
         "categories": "{{categories}}",
-  "update_aiu": "{{update_aiu}}",
-  "budget_id": "{{budget_id}}"
+        "update_aiu": false
       }
     }
   }
