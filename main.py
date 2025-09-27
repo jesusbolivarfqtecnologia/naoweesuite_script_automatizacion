@@ -63,16 +63,31 @@ def _sum_safe(values: List[Any]) -> float:
 	return total
 
 
-def _round2_if_number(v: Any) -> Any:
-	"""Convierte a float y redondea a 2 decimales si es numérico; de lo contrario devuelve el valor original."""
+def _round2_if_number(v: Any) -> float:
+	"""Convierte a float y redondea a 2 decimales; si no es numérico devuelve 0.0."""
+
+	if v is None:
+		return 0.0
+
+	candidate = v
+	if isinstance(v, str):
+		s = v.strip()
+		if not s:
+			return 0.0
+		# Normalizar valores numéricos en texto (separadores, comas decimales) y descartar errores como '#REF!'.
+		if s.startswith("#"):
+			return 0.0
+		candidate = s.replace(" ", "").replace("\xa0", "").replace(",", ".")
+
 	try:
-		if v is None or (isinstance(v, str) and v.strip() == ""):
-			return v
-		# Evitar convertir strings no numéricos como 'ABC'
-		f = float(v)
-		return round(f, 2)
+		num = float(candidate)
 	except Exception:
-		return v
+		return 0.0
+
+	if num != num:  # NaN check sin importar numpy
+		return 0.0
+
+	return round(num, 2)
 
 
 def _clean_discounts_in_details(details: List[Dict[str, Any]]) -> None:
@@ -113,21 +128,23 @@ def _zero_nulls_in_details(details: List[Dict[str, Any]]) -> None:
 	NUM_KEYS = ["height", "width", "length", "area", "quantity", "subtotal"]
 	for d in details:
 		for k in NUM_KEYS:
-			if d.get(k) in (None, ""):
+			val = d.get(k)
+			if val is None or (isinstance(val, str) and val.strip() == ""):
 				d[k] = 0.0
 		# total.total
 		total_obj = d.get("total")
 		if isinstance(total_obj, dict):
-			if total_obj.get("total") in (None, ""):
+			total_val = total_obj.get("total")
+			if total_val is None or (isinstance(total_val, str) and total_val.strip() == ""):
 				total_obj["total"] = 0.0
 		# discounts
 		discounts = d.get("discounts")
 		if discounts:
 			for disc in discounts:
 				for k in NUM_KEYS:
-					if disc.get(k) in (None, ""):
-						dic_val = 0.0
-						disc[k] = dic_val
+					val = disc.get(k)
+					if val is None or (isinstance(val, str) and val.strip() == ""):
+						disc[k] = 0.0
 
 
 def extraer_datos_hoja(
