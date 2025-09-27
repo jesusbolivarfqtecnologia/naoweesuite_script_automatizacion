@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -29,6 +30,14 @@ def leer_cedula(ws_apu) -> Any:
 
 def _to_str(v: Any) -> str:
 	return "" if v is None else str(v)
+
+
+def _normalize_sheet_name(name: Any) -> str:
+	s = "" if name is None else str(name)
+	s = unicodedata.normalize("NFKD", s)
+	s = "".join(ch for ch in s if not unicodedata.combining(ch))
+	s = re.sub(r"[\s\W_]+", "", s)
+	return s.lower()
 
 
 def _categoria_from_id(id_val: Any) -> str:
@@ -446,27 +455,56 @@ def procesar_archivo(
 		print(f"[ERROR] No se pudo abrir '{xlsx_path.name}': {exc}")
 		return None
 
-	if "APU" not in wb.sheetnames:
-		print(f"[ADVERTENCIA] Hoja 'APU' no encontrada en '{xlsx_path.name}'. Se omite.")
-		return None
+	# Localizar la hoja "APU" tolerando variaciones de mayúsculas, espacios o caracteres extra.
+	sheet_names = list(wb.sheetnames)
+	apu_index: Optional[int] = None
+	for idx, sheet_name in enumerate(sheet_names):
+		if "apu" in _normalize_sheet_name(sheet_name):
+			apu_index = idx
+			break
 
-	apu_index = wb.sheetnames.index("APU")
-	apu_ws = wb["APU"]
+	if apu_index is None:
+		if len(sheet_names) >= 2:
+			apu_index = 1
+			target_apu_name = sheet_names[apu_index]
+			print(
+				f"[ADVERTENCIA] Hoja tipo 'APU' no encontrada por nombre exacto en '{xlsx_path.name}'. "
+				f"Se asume '{target_apu_name}' (segunda hoja)."
+			)
+		elif sheet_names:
+			apu_index = 0
+			target_apu_name = sheet_names[apu_index]
+			print(
+				f"[ADVERTENCIA] Hoja tipo 'APU' no encontrada por nombre exacto en '{xlsx_path.name}'. "
+				f"Se asume '{target_apu_name}'."
+			)
+		else:
+			print(f"[ADVERTENCIA] El libro '{xlsx_path.name}' no contiene hojas. Se omite.")
+			return None
+	else:
+		target_apu_name = sheet_names[apu_index]
+
+	apu_ws = wb[target_apu_name]
 	cedula = leer_cedula(apu_ws)
 
-	# Hoja objetivo: preferir 'CANT. BENEFICIARIO 1' si existe; si no, usar la siguiente a APU
-	next_index = apu_index + 1
-	if next_index >= len(wb.sheetnames):
-		print(f"[ADVERTENCIA] No existe hoja siguiente a 'APU' en '{xlsx_path.name}'. Se omite.")
-		return None
+	# Seleccionar la hoja de cantidades: priorizar la que esté inmediatamente después de la APU,
+	# y como respaldo aceptar cualquier hoja cuyo nombre contenga "cant" y "beneficiario".
+	target_sheet_name: Optional[str] = None
+	if apu_index + 1 < len(sheet_names):
+		target_sheet_name = sheet_names[apu_index + 1]
 
-	desired_name = "CANT. BENEFICIARIO 1"
-	next_sheet_name = wb.sheetnames[next_index]
-	# Si la hoja inmediata no es la deseada, pero existe la deseada en el libro, usarla
-	if next_sheet_name != desired_name and desired_name in wb.sheetnames:
-		target_sheet_name = desired_name
-	else:
-		target_sheet_name = next_sheet_name
+	for idx, sheet_name in enumerate(sheet_names):
+		norm_name = _normalize_sheet_name(sheet_name)
+		if "cant" in norm_name and "beneficiario" in norm_name:
+			target_sheet_name = sheet_name
+			if idx == apu_index + 1:
+				break
+
+	if target_sheet_name is None:
+		print(
+			f"[ADVERTENCIA] No se encontró hoja de beneficiario cercana a '{target_apu_name}' en '{xlsx_path.name}'. Se omite."
+		)
+		return None
 
 	ws_target = wb[target_sheet_name]
 
