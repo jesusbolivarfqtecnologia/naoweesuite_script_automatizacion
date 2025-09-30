@@ -23,9 +23,16 @@ except Exception:
 from openpyxl.utils import column_index_from_string
 
 
-def leer_cedula(ws_apu) -> Any:
-	"""Lee la cédula desde la hoja 'APU' en la celda L6."""
-	return ws_apu["L6"].value
+def leer_cedula(ws_apu) -> int:
+	"""Lee la cédula desde la hoja 'APU' en la celda L6 y la convierte a entero."""
+	valor = ws_apu["L6"].value
+	if valor is None:
+		return 0
+	try:
+		# Convertir a entero, manejando casos donde venga como float
+		return int(float(valor))
+	except (ValueError, TypeError):
+		return 0
 
 
 def _to_str(v: Any) -> str:
