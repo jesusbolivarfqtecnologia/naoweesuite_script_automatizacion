@@ -84,10 +84,12 @@ def build_mappings(chapters: List[Dict[str, Any]]) -> Tuple[Dict[str, str], Dict
     code_to_category_id: Dict[str, str] = {}
     apu_to_meta: Dict[str, Dict[str, Any]] = {}
 
+
     for item in chapters:
         # id externo del item (no confundir con category.id)
         outer_id = item.get("id")
         subcats = item.get("subcategory") or []
+        
         # Deducir el prefijo de código a partir del apu de cualquier subcategoría
         for sc in subcats:
             apu = sc.get("apu")
@@ -97,12 +99,12 @@ def build_mappings(chapters: List[Dict[str, Any]]) -> Tuple[Dict[str, str], Dict
                 # Prefijo antes del punto
                 code_prefix = str(apu).split(".")[0]
                 if outer_id is not None:
-                    code_to_category_id[code_prefix] = str(outer_id)
+                    code_to_category_id[code_prefix] = str(sc.get("category_id"))
                 # Metadatos por apu
                 meta: Dict[str, Any] = {"apu": str(apu)}
                 # category_id desde el item exterior
                 if outer_id is not None:
-                    meta["category_id"] = str(outer_id)
+                    meta["category_id"] = str(sc.get("category_id"))
                 # nombre y unidad del subcapítulo
                 name = sc.get("name") or sc.get("label") or sc.get("description")
                 unit = sc.get("unit") or sc.get("measure") or sc.get("measurement_unit")
