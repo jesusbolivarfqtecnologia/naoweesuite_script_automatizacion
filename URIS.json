@@ -2,7 +2,7 @@
   "endpoints": {
     "get_users": {
       "description": "Obtiene la lista de los usuarios",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiaries-refactory?limit=1000000&order_by=id:desc",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiaries?contractor_email=constructoralatrinidadsas@gmail.com",
       "method": "GET"
     },
     "get_beneficiary": {
@@ -32,7 +32,7 @@
     "budget_payload": {
       "reference": {
         "beneficiary_id": "{{beneficiary_id}}",
-        "code": "presupuesto_ENT",
+        "code": "PRESUPUESTOS_RECORD",
         "contractor_id": "{{contractor_id}}",
         "contract_id": "{{contract_id}}",
         "resolution_id": 9,
