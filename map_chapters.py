@@ -86,12 +86,16 @@ def build_mappings(chapters: List[Dict[str, Any]]) -> Tuple[Dict[str, str], Dict
 
 
     for item in chapters:
+        if not isinstance(item, dict):
+            continue
         # id externo del item (no confundir con category.id)
         outer_id = item.get("id")
         subcats = item.get("subcategory") or []
         
         # Deducir el prefijo de código a partir del apu de cualquier subcategoría
         for sc in subcats:
+            if not isinstance(sc, dict):
+                continue
             apu = sc.get("apu")
             sc_id = sc.get("id")
             if apu:

@@ -111,6 +111,8 @@ def main() -> None:
     # Construir mapa por cédula (document_number)
     user_map: Dict[str, Dict[str, Any]] = {}
     for u in users:
+        if not isinstance(u, dict):
+            continue
         doc = normalize_digits(u.get("document_number"))
         if not doc:
             continue
@@ -128,6 +130,9 @@ def main() -> None:
             data = load_json(p)
         except Exception as e:
             print(f"[WARN] No se pudo leer '{p.name}': {e}")
+            continue
+        if not isinstance(data, dict):
+            print(f"[WARN] '{p.name}' no contiene un objeto JSON; se omite")
             continue
 
         # Renombrar 'cedula' -> 'beneficiary_document' como string
@@ -152,10 +157,10 @@ def main() -> None:
             data.setdefault("id", None)
             data["exist"] = False
 
-    out_path = out_dir / p.name
-    save_json(out_path, data)
-    print(f"[OK] Actualizado -> {out_path}")
-    updated += 1
+        out_path = out_dir / p.name
+        save_json(out_path, data)
+        print(f"[OK] Actualizado -> {out_path}")
+        updated += 1
 
     print(f"[RESUMEN] Archivos actualizados: {updated} en '{out_dir.resolve()}'")
 

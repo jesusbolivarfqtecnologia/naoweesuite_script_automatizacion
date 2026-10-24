@@ -1,129 +1,65 @@
-# 🚀 Sistema de Automatización de Presupuestos - Versión Ejecutable
+# Automatizacion de presupuestos
 
-## 📦 ¿Qué es esto?
+Pipeline Python para convertir presupuestos Excel en payloads JSON y, opcionalmente, enviarlos a la API.
 
-Este es un **ejecutable de Windows** (.exe) del Sistema de Automatización de Presupuestos que:
+## Requisitos
 
-- ✅ **No requiere Python instalado** - Funciona en cualquier Windows
-- ✅ **Incluye todas las dependencias** - Todo está empaquetado
-- ✅ **Fácil de distribuir** - Solo copia el archivo .exe
-- ✅ **Interfaz gráfica completa** - Same GUI experience
-- ✅ **Logging en tiempo real** - Todas las mejoras incluidas
+- Python 3.10 o superior
+- Dependencias de `requirements.txt`
 
-## 🛠️ Cómo Crear el Ejecutable
+Instalacion:
 
-### Opción 1: Automática (Recomendada)
 ```bash
-crear_ejecutable.bat
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-### Opción 2: Manual
+En Windows:
+
+```bat
+.venv\Scripts\pip install -r requirements.txt
+```
+
+## Flujo completo
+
+El comando principal extrae los XLSX, mapea capitulos, enriquece beneficiarios, construye payloads y los envia:
+
 ```bash
-# Activar entorno virtual
-mejoramiento\Scripts\activate.bat
-
-# Crear ejecutable
-python -m PyInstaller build_exe.spec
+python3 run_all.py
 ```
 
-## 📁 Estructura después de la construcción
+Para una ejecucion offline de prueba, proporciona archivos locales para las tres respuestas de API y evita el envio:
 
+```bash
+python3 run_all.py \
+  --chapters-file sample_chapters.json \
+  --users-file sample_users.json \
+  --beneficiary-file sample_beneficiary.json \
+  --no-submit
 ```
-script_automatizacion/
-├── dist/
-│   └── AutomacionPresupuestos.exe    ← ESTE ES TU EJECUTABLE
-├── build/                            ← Archivos temporales
-├── crear_ejecutable.bat              ← Script de construcción
-└── build_exe.spec                    ← Configuración de PyInstaller
+
+Opciones utiles:
+
+- `--input-dir`: carpeta de entrada de XLSX.
+- `--json-dir`: carpeta de JSON intermedios y payloads finales.
+- `--chapters-file`, `--users-file`, `--beneficiary-file`: modo offline.
+- `--no-submit`: no realizar solicitudes POST/PUT.
+- `--budget-map`: asignar `budget_id` por nombre de archivo.
+
+## Comandos individuales
+
+```bash
+python3 main.py
+python3 map_chapters.py --chapters-file sample_chapters.json
+python3 enrich_users.py --users-file sample_users.json
+python3 build_payloads.py --beneficiary-file sample_beneficiary.json
 ```
 
-## 🚀 Cómo Usar el Ejecutable
+## Configuracion y seguridad
 
-### Para ti (desarrollador):
-1. Ejecuta `crear_ejecutable.bat`
-2. Espera a que termine (puede tomar 2-5 minutos)
-3. Ve a la carpeta `dist/`
-4. Haz doble clic en `AutomacionPresupuestos.exe`
+- Copia `config.example.json` a `config.json` y agrega el token localmente.
+- `config.json` esta excluido de Git; nunca guardes tokens en el repositorio.
+- Si un token fue expuesto, revocalo y genera uno nuevo antes de volver a ejecutar el pipeline.
+- Revisa `URIS.json` antes de habilitar el envio. El envio esta activo por defecto en `run_all.py`; usa `--no-submit` para pruebas.
 
-### Para distribuir a otros:
-1. Copia `AutomacionPresupuestos.exe` a cualquier computadora Windows
-2. El usuario solo hace doble clic para ejecutar
-3. **No necesita instalar Python, ni librerías, ni nada más**
-
-## 📋 Características del Ejecutable
-
-### ✅ Funcionalidades Incluidas:
-- Interfaz gráfica completa
-- Selección de carpetas input/output
-- Gestión de tokens de API
-- Procesamiento de Excel a JSON
-- Envío de payloads
-- Logging en tiempo real con timestamps
-- Barra de progreso con porcentajes
-- Sistema de ayuda integrado
-
-### ✅ Archivos de Configuración:
-- `config.example.json` - Plantilla de configuración
-- `URIS.json` - Endpoints de API
-- Archivos de ejemplo (sample_*.json)
-- Documentación completa
-
-## 🔧 Características Técnicas
-
-### Tamaño Aproximado:
-- **~50-80 MB** - Incluye Python + todas las librerías
-- **Inicio rápido** - Se carga en 2-3 segundos
-- **Memoria baja** - Usa ~50-100 MB RAM
-
-### Compatibilidad:
-- **Windows 7/8/10/11** (32 y 64 bits)
-- **No requiere permisos de administrador**
-- **Funciona desde USB** o cualquier carpeta
-
-### Seguridad:
-- **Sin instalación** - No modifica el sistema
-- **Portable** - Se ejecuta desde donde esté
-- **Sin registro** - No deja rastros en Windows
-
-## 🆘 Solución de Problemas
-
-### Si el ejecutable no inicia:
-1. **Antivirus**: Algunos antivirus bloquean ejecutables nuevos
-   - Agrega excepción para `AutomacionPresupuestos.exe`
-   
-2. **Permisos**: Asegúrate de que el archivo no esté bloqueado
-   - Click derecho → Propiedades → Desbloquear
-
-3. **Dependencias de Windows**: En casos muy raros
-   - Instala [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-
-### Si hay errores durante la construcción:
-1. Verifica que el entorno virtual esté activado
-2. Asegúrate de que todas las dependencias estén instaladas
-3. Cierra otros programas que puedan usar archivos Python
-
-## 📈 Ventajas del Ejecutable
-
-### Para Desarrolladores:
-- **Fácil distribución** - Un solo archivo
-- **Control de versión** - Empaqueta versión específica
-- **No conflictos** - Entorno aislado
-
-### Para Usuarios Finales:
-- **Sin instalación** - Doble clic y listo
-- **Sin conocimiento técnico** - No necesitan saber de Python
-- **Interfaz familiar** - GUI de Windows estándar
-
-## 🎯 Casos de Uso
-
-### Distribución Empresarial:
-- Enviar por email a colegas
-- Subir a shared drive de la empresa
-- Incluir en installer corporativo
-
-### Uso Personal:
-- Backup ejecutable para otros PCs
-- Versión portable en USB
-- Compartir con contratistas
-
-¡Tu herramienta Python ahora es un programa de Windows profesional! 🎉
+Los archivos de entrada se leen desde `input_xlsx/`. Los payloads finales se dejan en `output_json/`.

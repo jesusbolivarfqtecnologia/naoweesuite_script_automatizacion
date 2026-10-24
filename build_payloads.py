@@ -232,6 +232,8 @@ def main() -> None:
                 print(f"[INFO] Usuarios recibidos: {len(users)}")
             m: Dict[str, Dict[str, Any]] = {}
             for u in users:
+                if not isinstance(u, dict):
+                    continue
                 doc = normalize_digits(u.get("document_number"))
                 if not doc:
                     continue
