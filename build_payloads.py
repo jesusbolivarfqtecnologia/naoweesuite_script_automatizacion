@@ -104,15 +104,6 @@ def get_payload_reference(uris: Dict[str, Any], template_name: str) -> Dict[str,
 
 
 def build_payload(reference: Dict[str, Any], mapped: Dict[str, Any], beneficiary: Dict[str, Any]) -> Dict[str, Any]:
-    if not isinstance(mapped, dict):
-        raise ValueError("El JSON mapeado debe ser un objeto")
-    if not isinstance(mapped.get("categories"), list):
-        raise ValueError("El JSON mapeado debe contener una lista 'categories'")
-    if mapped.get("id") is None:
-        raise ValueError("El JSON mapeado debe contener 'id'")
-    if not isinstance(beneficiary, dict):
-        raise ValueError("El beneficiary debe ser un objeto")
-
     # Copia profunda para no mutar el template
     payload = json.loads(json.dumps(reference))
 
@@ -241,8 +232,6 @@ def main() -> None:
                 print(f"[INFO] Usuarios recibidos: {len(users)}")
             m: Dict[str, Dict[str, Any]] = {}
             for u in users:
-                if not isinstance(u, dict):
-                    continue
                 doc = normalize_digits(u.get("document_number"))
                 if not doc:
                     continue
@@ -259,9 +248,6 @@ def main() -> None:
             mapped = load_json(p)
         except Exception as e:
             print(f"[WARN] No se pudo leer '{p.name}': {e}")
-            continue
-        if not isinstance(mapped, dict):
-            print(f"[WARN] '{p.name}' no contiene un objeto JSON; se omite")
             continue
 
         # Enriquecimiento por archivo (si aplica): renombrar cedula y setear id/budget_id/exist
@@ -312,11 +298,7 @@ def main() -> None:
             print(f"[WARN] No se pudo obtener beneficiary para '{p.name}': {e}")
             continue
 
-        try:
-            payload = build_payload(reference, mapped, ben)
-        except ValueError as e:
-            print(f"[WARN] '{p.name}' no es un payload válido: {e}")
-            continue
+        payload = build_payload(reference, mapped, ben)
         out_path = out_dir / p.name
         save_json(out_path, payload)
         print(f"[OK] Payload -> {out_path}")

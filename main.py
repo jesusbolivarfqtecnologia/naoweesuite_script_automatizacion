@@ -471,9 +471,6 @@ def procesar_archivo(
 	  "datos": [ {"codigo": ..., "elementos": [[...], ...]}, ... ]
 	}
 	"""
-	if steps <= 0:
-		raise ValueError("steps debe ser mayor que cero")
-
 	try:
 		# Abrir sin read_only para evitar el streaming lento al acceder celdas arbitrarias;
 		# mantener data_only y keep_links=False para rendimiento
