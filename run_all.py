@@ -1,6 +1,8 @@
 import argparse
 import json
+import logging
 import shutil
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -10,29 +12,14 @@ import requests
 import main as extractor
 import map_chapters as mapper
 import build_payloads as payloads
+from pipeline_utils import clear_json_files, configure_logging, load_json, merge_headers, resolve_auth, save_json
 
 
-def _load_json(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _save_json(path: Path, data: Any) -> None:
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+LOGGER = logging.getLogger("presupuestos")
 
 
 def _resolve_auth(config: Dict[str, Any], cli_token: Optional[str]) -> Tuple[Optional[str], Optional[Dict[str, str]]]:
-    cfg_auth = config.get("auth") if isinstance(config, dict) else None
-    cfg_token = None
-    if isinstance(cfg_auth, dict):
-        t = cfg_auth.get("token")
-        if isinstance(t, str) and t.strip():
-            cfg_token = t.strip()
-    token = cli_token or cfg_token
-    cfg_headers = config.get("headers") if isinstance(config, dict) else None
-    extra_headers = {str(k): str(v) for k, v in cfg_headers.items()} if isinstance(cfg_headers, dict) else None
-    return token, extra_headers
+    return resolve_auth(config, cli_token)
 
 
 def _preflight_auth_or_exit(uris: Dict[str, Any], token: Optional[str], extra_headers: Optional[Dict[str, str]], *, need_online: bool) -> bool:
@@ -53,14 +40,7 @@ def _preflight_auth_or_exit(uris: Dict[str, Any], token: Optional[str], extra_he
     method = (ep.get("method") or "GET").upper()
     if method != "GET":
         return True
-    headers: Dict[str, str] = {}
-    cfg_headers = ep.get("headers")
-    if isinstance(cfg_headers, dict):
-        headers.update({str(k): str(v) for k, v in cfg_headers.items()})
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    if extra_headers:
-        headers.update(extra_headers)
+    headers = merge_headers(ep, token, extra_headers)
     try:
         resp = requests.get(url, headers=headers or None, timeout=10)
     except Exception as e:
@@ -92,7 +72,7 @@ def step_submit_payloads(mapped_dir: Path, uris: Dict[str, Any], token: Optional
     failed = 0
     for p in sorted(mapped_dir.glob("*.json")):
         try:
-            obj = _load_json(p)
+            obj = load_json(p)
         except Exception as e:
             print(f"[WARN] No se pudo leer '{p.name}' para envío: {e}")
             failed += 1
@@ -130,15 +110,7 @@ def step_submit_payloads(mapped_dir: Path, uris: Dict[str, Any], token: Optional
             failed += 1
             continue
 
-        headers: Dict[str, str] = {}
-        # headers del endpoint
-        headers.update({str(k): str(v) for k, v in ep_headers.items()})
-        # headers globales de config
-        if extra_headers:
-            headers.update(extra_headers)
-        # auth
-        if token:
-            headers["Authorization"] = f"Bearer {token}"
+        headers = merge_headers({"headers": ep_headers}, token, extra_headers)
         # content-type json por defecto
         headers.setdefault("Content-Type", "application/json")
 
@@ -205,7 +177,7 @@ def step_extract_xlsx_to_json(input_dir: Path, output_dir: Path, args) -> List[P
 def step_map_chapters(json_input_dir: Path, mapped_dir: Path, uris: Dict[str, Any], token: Optional[str], extra_headers: Optional[Dict[str, str]], chapters_file: Optional[Path], budget_id: Optional[int], budget_map: Dict[str, Any]) -> int:
     # Cargar chapters
     if chapters_file:
-        raw = _load_json(chapters_file)
+        raw = load_json(chapters_file)
         if isinstance(raw, dict):
             chapters = [raw]
         elif isinstance(raw, list):
@@ -225,9 +197,12 @@ def step_map_chapters(json_input_dir: Path, mapped_dir: Path, uris: Dict[str, An
     count = 0
     for p in files:
         try:
-            data = _load_json(p)
+            data = load_json(p)
         except Exception as e:
             print(f"[WARN] No se pudo leer '{p.name}': {e}")
+            continue
+        if not isinstance(data, dict):
+            print(f"[WARN] '{p.name}' no contiene un objeto JSON; se omite")
             continue
 
         new_data = mapper.transform_budget_json(data, apu_to_subcat_id, code_to_category_id, apu_to_meta)
@@ -251,7 +226,7 @@ def step_map_chapters(json_input_dir: Path, mapped_dir: Path, uris: Dict[str, An
                 new_data.pop("cedula", None)
 
         out_path = mapped_dir / p.name
-        _save_json(out_path, new_data)
+        save_json(out_path, new_data)
         print(f"[OK] Mapeado: {out_path}")
         count += 1
     print(f"[RESUMEN] Mapeados: {count} archivos en '{mapped_dir.resolve()}'")
@@ -263,7 +238,7 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
     user_map: Dict[str, Dict[str, Any]] = {}
     try:
         if users_file:
-            users_raw = _load_json(users_file)
+            users_raw = load_json(users_file)
             if isinstance(users_raw, dict):
                 users = users_raw.get("items", []) or []
             elif isinstance(users_raw, list):
@@ -276,6 +251,8 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
             users = payloads.fetch_get_users(uris, token=token, extra_headers=extra_headers)
             print(f"[INFO] Usuarios recibidos: {len(users)}")
         for u in users:
+            if not isinstance(u, dict):
+                continue
             doc = payloads.normalize_digits(u.get("document_number"))
             if not doc:
                 continue
@@ -287,7 +264,7 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
     reference = payloads.get_payload_reference(uris, template_name)
     beneficiary_offline: Optional[Dict[str, Any]] = None
     if beneficiary_file:
-        beneficiary_offline = _load_json(beneficiary_file)
+        beneficiary_offline = load_json(beneficiary_file)
         if not isinstance(beneficiary_offline, dict):
             raise RuntimeError("El beneficiary-file debe ser un objeto JSON")
         print(f"[INFO] Beneficiary desde archivo local: {beneficiary_file}")
@@ -296,9 +273,15 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
     skipped_false: list[dict] = []
     for p in sorted(mapped_dir.glob("*.json")):
         try:
-            data = _load_json(p)
+            data = load_json(p)
         except Exception as e:
             print(f"[WARN] No se pudo leer '{p.name}': {e}")
+            continue
+        if not isinstance(data, dict):
+            print(f"[WARN] '{p.name}' no contiene un objeto JSON; se omite")
+            continue
+        if not isinstance(data.get("categories"), list):
+            print(f"[WARN] '{p.name}' no contiene una lista 'categories'; se omite")
             continue
 
         # Enriquecer con id/budget_id/exist
@@ -336,7 +319,7 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
 
         # Construir payload y escribir in-place
         pay = payloads.build_payload(reference, data, ben)
-        _save_json(p, pay)
+        save_json(p, pay)
         print(f"[OK] Payload (in-place): {p}")
         built += 1
 
@@ -369,26 +352,72 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--budget-id", type=int, default=None)
     p.add_argument("--budget-map", default=None, help="Ruta a JSON {\"<archivo.json>\": budget_id}")
     p.add_argument("--template", default="budget_payload")
-    p.add_argument("--no-submit", action="store_true", help="No enviar payloads (por defecto se envían)")
+    submit = p.add_mutually_exclusive_group()
+    submit.add_argument("--submit", action="store_true", help="Enviar payloads a la API")
+    submit.add_argument("--no-submit", action="store_true", help="No enviar payloads (opción de compatibilidad)")
+    p.add_argument("--final-dir", default="output_payloads", help="Carpeta para payloads finales (por defecto: output_payloads)")
+    p.add_argument("--clean-output", action="store_true", help="Limpiar JSON de trabajo y finales antes de iniciar")
+    p.add_argument("--log-file", default=None, help="Archivo opcional para registrar la ejecución")
+    p.add_argument("--verbose", action="store_true", help="Activar logging detallado")
     return p.parse_args()
 
 
-def main() -> None:
+def main() -> int:
     args = parse_args()
     input_dir = Path(args.input_dir)
     json_dir = Path(args.json_dir)
     mapped_dir = Path(args.mapped_dir)
+    final_dir = Path(args.final_dir)
+
+    configure_logging(Path(args.log_file) if args.log_file else None, args.verbose)
+    LOGGER.info("Iniciando pipeline")
+
+    offline_paths = {
+        "chapters": Path(args.chapters_file) if args.chapters_file else None,
+        "users": Path(args.users_file) if args.users_file else None,
+        "beneficiary": Path(args.beneficiary_file) if args.beneficiary_file else None,
+    }
+    provided_offline = [name for name, path in offline_paths.items() if path is not None]
+    if provided_offline and len(provided_offline) != len(offline_paths):
+        missing = ", ".join(name for name, path in offline_paths.items() if path is None)
+        LOGGER.error("Modo offline incompleto; faltan archivos: %s", missing)
+        return 1
+    if provided_offline:
+        missing_files = [str(path) for path in offline_paths.values() if path is not None and not path.is_file()]
+        if missing_files:
+            LOGGER.error("No existen los archivos offline: %s", ", ".join(missing_files))
+            return 1
+        try:
+            chapters_data = load_json(offline_paths["chapters"])
+            users_data = load_json(offline_paths["users"])
+            beneficiary_data = load_json(offline_paths["beneficiary"])
+        except (OSError, json.JSONDecodeError) as exc:
+            LOGGER.error("No se pudo leer la entrada offline: %s", exc)
+            return 1
+        if not isinstance(chapters_data, (dict, list)) or not chapters_data:
+            LOGGER.error("El archivo offline de chapters debe contener un objeto o lista no vacía")
+            return 1
+        if not isinstance(users_data, (dict, list)) or not users_data:
+            LOGGER.error("El archivo offline de users debe contener un objeto o lista no vacía")
+            return 1
+        if not isinstance(beneficiary_data, dict):
+            LOGGER.error("El archivo offline de beneficiary debe contener un objeto JSON")
+            return 1
+
+    if args.clean_output:
+        removed = sum(clear_json_files(directory) for directory in (json_dir, mapped_dir, final_dir))
+        LOGGER.info("Limpieza solicitada: %s JSON eliminado(s)", removed)
 
     uris = mapper.load_uris(Path(args.uris))
     config = mapper.load_config(Path(args.config))
     token, extra_headers = _resolve_auth(config, args.auth_token)
 
     # Pre-chequeo de token antes de cualquier procesamiento costoso
-    offline_ready = bool(args.chapters_file and args.users_file and args.beneficiary_file)
-    submit_enabled = not args.no_submit
+    offline_ready = bool(provided_offline)
+    submit_enabled = bool(args.submit)
     need_online = (not offline_ready) or submit_enabled
     if not _preflight_auth_or_exit(uris, token, extra_headers, need_online=need_online):
-        return
+        return 1
 
     # Paso 1: XLSX -> JSON
     step_extract_xlsx_to_json(input_dir, json_dir, args)
@@ -408,58 +437,40 @@ def main() -> None:
     beneficiary_file = Path(args.beneficiary_file) if args.beneficiary_file else None
     built, skipped_false = step_enrich_and_build(mapped_dir, uris, token, extra_headers, users_file, beneficiary_file, args.template)
 
-    # Paso 4.5: Envío (por defecto activo; se puede desactivar con --no-submit)
+    # Paso 4.5: Envío solo si se solicita explícitamente con --submit
     if submit_enabled:
         # Revalidación rápida (por si se corrió en modo 100% offline sin token)
         if not _preflight_auth_or_exit(uris, token, extra_headers, need_online=True):
-            return
-        step_submit_payloads(mapped_dir, uris, token, extra_headers)
+            return 1
+        _, failed = step_submit_payloads(mapped_dir, uris, token, extra_headers)
+        if failed:
+            LOGGER.error("El envío terminó con %s fallo(s)", failed)
 
-    # Paso final: Reemplazar output_json con el contenido final de mapped_dir
+    # Paso final: copiar solo payloads a una carpeta separada, preservando intermedios
     try:
-        json_dir.mkdir(parents=True, exist_ok=True)
-        # Limpiar JSON existentes
-        removed = 0
-        for p in json_dir.glob("*.json"):
-            try:
-                p.unlink()
-                removed += 1
-            except Exception:
-                pass
+        final_dir.mkdir(parents=True, exist_ok=True)
         # Copiar solo payloads (archivos que tienen 'beneficiary_id' en el root)
         copied = 0
         skipped = 0
         for m in mapped_dir.glob("*.json"):
             try:
-                obj = _load_json(m)
+                obj = load_json(m)
             except Exception:
                 skipped += 1
                 continue
             if isinstance(obj, dict) and "beneficiary_id" in obj:
-                dest = json_dir / m.name
+                dest = final_dir / m.name
                 shutil.copy2(m, dest)
                 copied += 1
             else:
                 skipped += 1
-        print(f"[FINAL] Reemplazado '{json_dir.name}': quitados {removed}, copiados {copied} payload(s), omitidos {skipped}")
+        print(f"[FINAL] '{final_dir.name}': copiados {copied} payload(s), omitidos {skipped}")
     except Exception as e:
-        print(f"[WARN] No se pudo reemplazar '{json_dir}': {e}")
+        print(f"[WARN] No se pudo escribir '{final_dir}': {e}")
 
-    # Limpiar carpeta mapped_dir
-    try:
-        if mapped_dir.exists():
-            for p in mapped_dir.glob("*"):
-                try:
-                    if p.is_file() or p.is_symlink():
-                        p.unlink(missing_ok=True)
-                except Exception:
-                    pass
-            # Eliminar directorio vacío
-            mapped_dir.rmdir()
-            print(f"[CLEANUP] Eliminada carpeta '{mapped_dir.name}'")
-    except Exception as e:
-        print(f"[WARN] No se pudo eliminar '{mapped_dir}': {e}")
+    LOGGER.info("Intermedios preservados en '%s' y '%s'", json_dir, mapped_dir)
+    return 1 if submit_enabled and failed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

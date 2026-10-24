@@ -131,6 +131,8 @@ def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str]
     result = json.loads(json.dumps(data))  # copia profunda segura
     categories = result.get("categories") or []
     for cat in categories:
+        if not isinstance(cat, dict):
+            continue
         # Resolver id de categoría
         original_code = cat.get("codigo") if "codigo" in cat else cat.get("id")
         new_id = None
@@ -154,6 +156,8 @@ def transform_budget_json(data: Dict[str, Any], apu_to_subcat_id: Dict[str, str]
 
         subcats = cat.get("subcategories") or []
         for sc in subcats:
+            if not isinstance(sc, dict):
+                continue
             original_apu = sc.get("id")
             sc_id = sc.get("id")
             if sc_id is not None:
@@ -290,6 +294,9 @@ def main() -> None:
                 data = json.load(f)
         except Exception as e:
             print(f"[WARN] No se pudo leer '{p.name}': {e}")
+            continue
+        if not isinstance(data, dict):
+            print(f"[WARN] '{p.name}' no contiene un objeto JSON; se omite")
             continue
 
         new_data = transform_budget_json(data, apu_to_subcat_id, code_to_category_id, apu_to_meta)
