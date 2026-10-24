@@ -1,0 +1,6 @@
+cd D:\Usuarios\INTEVENTORIA\Desktop\script_automatizacion\script_automatizacion
+del /q input_xlsx
+rmdir /s /q output_json
+rmdir /s /q output_json_mapped
+.venv\Scripts\activate
+python run_all.py

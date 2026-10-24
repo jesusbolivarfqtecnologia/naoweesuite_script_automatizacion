@@ -2,7 +2,7 @@
   "endpoints": {
     "get_users": {
       "description": "Obtiene la lista de los usuarios",
-      "uri": "https://back-pres-decreto.naoweesuite.com/beneficiaries?contractor_email=constructoralatrinidadsas@gmail.com",
+      "uri": "https://back-pres-decreto.naoweesuite.com/beneficiaries?contractor_email=mejoramientohatonuevo@gmail.com",
       "method": "GET"
     },
     "get_beneficiary": {
@@ -32,40 +32,46 @@
     "budget_payload": {
       "reference": {
         "beneficiary_id": "{{beneficiary_id}}",
-        "code": "PRESUPUESTOS_RECORD",
         "contractor_id": "{{contractor_id}}",
         "contract_id": "{{contract_id}}",
-        "resolution_id": 9,
-        "department_id": 9,
-        "municipality_id": 426,
-        "village": "media luna ",
+        "categories": "{{categories}}",
+        "resolution_id": 1,
+        "department_id": 14,
+        "municipality_id": 649,
+        "village": "RAMON LUQUE",
+        "beneficiary_document": "1193253949",
+        "department": "LA GUAJIRA",
+        "municipality": "HATONUEVO",
+        "presentation_date": "2026-10-06",
+        "is_contractor": false,
+        "code": "PRESUPUESTO_METODO_LOCATIVO",
         "scheme_type_id": 361,
-        "beneficiary_document": "49787219",
         "minimum_salary_id": 289,
-        "minimum_salary": 1300000,
-        "department": "CESAR",
-        "municipality": "SAN DIEGO",
+        "minimum_salary": 1423500,
         "improvement_type_id": 323,
         "improvement_type": "Locativo",
         "specific_improvement_id": null,
         "specific_improvement": "",
-        "valid_year": 2025,
-        "presentation_date": "2025-08-14",
-        "legal_minimum_wages": 18,
-        "total_value": 23400000,
-        "total_diagnosis": 1300000,
-        "subtotal_direct_costs": 227108,
-        "subtotal_indirect_costs": 56779,
-        "total_budget": 1583887,
+        "valid_year": "2025",
+        "legal_minimum_wages": 15,
+        "total_value": 21352500,
+        "total_diagnosis": 0,
+        "subtotal_direct_costs": 8486821,
+        "subtotal_indirect_costs": 1401535,
+        "total_budget": 9888356,
         "total_days_execution": 0,
-        "value_redounded": "1583887",
+        "value_redounded": "9888356",
         "data": {
-          "specific_improvement_type_locative": [106],
-          "specific_improvement_type_locative_mixto": null
+          "specific_improvement_type_locative": [
+            340,
+            341
+          ],
+          "specific_improvement_type_locative_mixto": null,
+          "tope_source": "contrato",
+          "ubication": "urbano",
+          "improvement_type": "locativo"
         },
-        "is_contractor": false,
-        "categories": "{{categories}}",
-        "update_aiu": false
+        "update_aiu": true
       }
     }
   }

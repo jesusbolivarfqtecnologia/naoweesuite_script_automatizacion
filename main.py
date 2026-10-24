@@ -1,7 +1,6 @@
 import argparse
 import json
 import re
-import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -23,28 +22,13 @@ except Exception:
 from openpyxl.utils import column_index_from_string
 
 
-def leer_cedula(ws_apu) -> int:
-	"""Lee la cédula desde la hoja 'APU' en la celda L6 y la convierte a entero."""
-	valor = ws_apu["L6"].value
-	if valor is None:
-		return 0
-	try:
-		# Convertir a entero, manejando casos donde venga como float
-		return int(float(valor))
-	except (ValueError, TypeError):
-		return 0
+def leer_cedula(ws_apu) -> Any:
+	"""Lee la cédula desde la hoja 'APU' en la celda L6."""
+	return ws_apu["L6"].value
 
 
 def _to_str(v: Any) -> str:
 	return "" if v is None else str(v)
-
-
-def _normalize_sheet_name(name: Any) -> str:
-	s = "" if name is None else str(name)
-	s = unicodedata.normalize("NFKD", s)
-	s = "".join(ch for ch in s if not unicodedata.combining(ch))
-	s = re.sub(r"[\s\W_]+", "", s)
-	return s.lower()
 
 
 def _categoria_from_id(id_val: Any) -> str:
@@ -70,31 +54,16 @@ def _sum_safe(values: List[Any]) -> float:
 	return total
 
 
-def _round2_if_number(v: Any) -> float:
-	"""Convierte a float y redondea a 2 decimales; si no es numérico devuelve 0.0."""
-
-	if v is None:
-		return 0.0
-
-	candidate = v
-	if isinstance(v, str):
-		s = v.strip()
-		if not s:
-			return 0.0
-		# Normalizar valores numéricos en texto (separadores, comas decimales) y descartar errores como '#REF!'.
-		if s.startswith("#"):
-			return 0.0
-		candidate = s.replace(" ", "").replace("\xa0", "").replace(",", ".")
-
+def _round2_if_number(v: Any) -> Any:
+	"""Convierte a float y redondea a 2 decimales si es numérico; de lo contrario devuelve el valor original."""
 	try:
-		num = float(candidate)
+		if v is None or (isinstance(v, str) and v.strip() == ""):
+			return v
+		# Evitar convertir strings no numéricos como 'ABC'
+		f = float(v)
+		return round(f, 2)
 	except Exception:
-		return 0.0
-
-	if num != num:  # NaN check sin importar numpy
-		return 0.0
-
-	return round(num, 2)
+		return v
 
 
 def _clean_discounts_in_details(details: List[Dict[str, Any]]) -> None:
@@ -135,23 +104,21 @@ def _zero_nulls_in_details(details: List[Dict[str, Any]]) -> None:
 	NUM_KEYS = ["height", "width", "length", "area", "quantity", "subtotal"]
 	for d in details:
 		for k in NUM_KEYS:
-			val = d.get(k)
-			if val is None or (isinstance(val, str) and val.strip() == ""):
+			if d.get(k) in (None, ""):
 				d[k] = 0.0
 		# total.total
 		total_obj = d.get("total")
 		if isinstance(total_obj, dict):
-			total_val = total_obj.get("total")
-			if total_val is None or (isinstance(total_val, str) and total_val.strip() == ""):
+			if total_obj.get("total") in (None, ""):
 				total_obj["total"] = 0.0
 		# discounts
 		discounts = d.get("discounts")
 		if discounts:
 			for disc in discounts:
 				for k in NUM_KEYS:
-					val = disc.get(k)
-					if val is None or (isinstance(val, str) and val.strip() == ""):
-						disc[k] = 0.0
+					if disc.get(k) in (None, ""):
+						dic_val = 0.0
+						disc[k] = dic_val
 
 
 def extraer_datos_hoja(
@@ -479,56 +446,27 @@ def procesar_archivo(
 		print(f"[ERROR] No se pudo abrir '{xlsx_path.name}': {exc}")
 		return None
 
-	# Localizar la hoja "APU" tolerando variaciones de mayúsculas, espacios o caracteres extra.
-	sheet_names = list(wb.sheetnames)
-	apu_index: Optional[int] = None
-	for idx, sheet_name in enumerate(sheet_names):
-		if "apu" in _normalize_sheet_name(sheet_name):
-			apu_index = idx
-			break
+	if "APU" not in wb.sheetnames:
+		print(f"[ADVERTENCIA] Hoja 'APU' no encontrada en '{xlsx_path.name}'. Se omite.")
+		return None
 
-	if apu_index is None:
-		if len(sheet_names) >= 2:
-			apu_index = 1
-			target_apu_name = sheet_names[apu_index]
-			print(
-				f"[ADVERTENCIA] Hoja tipo 'APU' no encontrada por nombre exacto en '{xlsx_path.name}'. "
-				f"Se asume '{target_apu_name}' (segunda hoja)."
-			)
-		elif sheet_names:
-			apu_index = 0
-			target_apu_name = sheet_names[apu_index]
-			print(
-				f"[ADVERTENCIA] Hoja tipo 'APU' no encontrada por nombre exacto en '{xlsx_path.name}'. "
-				f"Se asume '{target_apu_name}'."
-			)
-		else:
-			print(f"[ADVERTENCIA] El libro '{xlsx_path.name}' no contiene hojas. Se omite.")
-			return None
-	else:
-		target_apu_name = sheet_names[apu_index]
-
-	apu_ws = wb[target_apu_name]
+	apu_index = wb.sheetnames.index("APU")
+	apu_ws = wb["APU"]
 	cedula = leer_cedula(apu_ws)
 
-	# Seleccionar la hoja de cantidades: priorizar la que esté inmediatamente después de la APU,
-	# y como respaldo aceptar cualquier hoja cuyo nombre contenga "cant" y "beneficiario".
-	target_sheet_name: Optional[str] = None
-	if apu_index + 1 < len(sheet_names):
-		target_sheet_name = sheet_names[apu_index + 1]
-
-	for idx, sheet_name in enumerate(sheet_names):
-		norm_name = _normalize_sheet_name(sheet_name)
-		if "cant" in norm_name and "beneficiario" in norm_name:
-			target_sheet_name = sheet_name
-			if idx == apu_index + 1:
-				break
-
-	if target_sheet_name is None:
-		print(
-			f"[ADVERTENCIA] No se encontró hoja de beneficiario cercana a '{target_apu_name}' en '{xlsx_path.name}'. Se omite."
-		)
+	# Hoja objetivo: preferir 'CANT. BENEFICIARIO 1' si existe; si no, usar la siguiente a APU
+	next_index = apu_index + 1
+	if next_index >= len(wb.sheetnames):
+		print(f"[ADVERTENCIA] No existe hoja siguiente a 'APU' en '{xlsx_path.name}'. Se omite.")
 		return None
+
+	desired_name = "CANT. BENEFICIARIO 1"
+	next_sheet_name = wb.sheetnames[next_index]
+	# Si la hoja inmediata no es la deseada, pero existe la deseada en el libro, usarla
+	if next_sheet_name != desired_name and desired_name in wb.sheetnames:
+		target_sheet_name = desired_name
+	else:
+		target_sheet_name = next_sheet_name
 
 	ws_target = wb[target_sheet_name]
 
