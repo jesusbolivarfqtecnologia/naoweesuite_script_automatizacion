@@ -61,6 +61,31 @@ def normalize_digits(x: Any) -> str:
     return re.sub(r"\D+", "", s)
 
 
+def extract_budget_id(user: Any) -> Any:
+    """Obtiene el id del presupuesto aunque venga anidado en la respuesta de beneficiarios."""
+    if not isinstance(user, dict):
+        return None
+
+    for key in ("budget_id", "record_budget_id", "budgetId", "recordBudgetId"):
+        value = user.get(key)
+        if value is not None and value != "":
+            return value
+
+    for key in ("budget", "record_budget", "recordBudget"):
+        nested = user.get(key)
+        if isinstance(nested, dict):
+            value = nested.get("id") or nested.get("budget_id")
+            if value is not None and value != "":
+                return value
+        elif isinstance(nested, list):
+            for item in nested:
+                value = extract_budget_id(item)
+                if value is not None:
+                    return value
+
+    return None
+
+
 def fetch_get_users(uris: Dict[str, Any], *, token: Optional[str] = None, extra_headers: Optional[Dict[str, str]] = None):
     ep = uris.get("endpoints", {}).get("get_users")
     if not ep:
@@ -151,7 +176,9 @@ def build_payload(reference: Dict[str, Any], mapped: Dict[str, Any], beneficiary
     payload["department_id"] = department_id
     payload["municipality_id"] = municipality_id
     payload["categories"] = categories
-    payload["update_aiu"] = bool(False)
+    # Los presupuestos existentes se actualizan; los nuevos requieren el flujo
+    # de alta iniciado desde "Beneficiarios récord" en el sistema.
+    payload["update_aiu"] = budget_id is not None
     payload["budget_id"] = budget_id
     # Añadir beneficiary_document para trazabilidad según solicitud
     payload["beneficiary_document"] = beneficiary_document

@@ -279,7 +279,10 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
             doc = payloads.normalize_digits(u.get("document_number"))
             if not doc:
                 continue
-            user_map[doc] = {"budget_id": u.get("budget_id"), "id": u.get("id")}
+            user_map[doc] = {
+                "budget_id": payloads.extract_budget_id(u),
+                "id": u.get("id"),
+            }
     except Exception as e:
         print(f"[WARN] No se pudo obtener users: {e}")
         user_map = {}
@@ -305,7 +308,8 @@ def step_enrich_and_build(mapped_dir: Path, uris: Dict[str, Any], token: Optiona
         ced = payloads.normalize_digits(data.get("beneficiary_document")) or payloads.normalize_digits(data.get("cedula"))
         info = user_map.get(ced) if ced else None
         if info:
-            data["budget_id"] = info.get("budget_id")
+            if info.get("budget_id") is not None:
+                data["budget_id"] = info.get("budget_id")
             data["id"] = info.get("id")
             data["exist"] = True
         else:
