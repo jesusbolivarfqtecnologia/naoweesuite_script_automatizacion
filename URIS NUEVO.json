@@ -2,28 +2,28 @@
   "endpoints": {
     "get_users": {
       "description": "Obtiene la lista de los usuarios",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiaries-refactory?limit=1000000&order_by=id:desc",
+      "uri": "https://back-pres-decreto.naoweesuite.com/beneficiaries?contractor_email=mejoramientohatonuevo@gmail.com",
       "method": "GET"
     },
     "get_beneficiary": {
       "description": "Obtiene el beneficiario con relaciones por user_id",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiary-with-relationship/{{user_id}}",
+      "uri": "https://back-pres-decreto.naoweesuite.com/beneficiary-with-relationship/{{user_id}}",
       "method": "GET"
     },
     "get_chapters": {
       "description": "Obtiene la lista de los capitulos y actividades en el cesar que es el id 9",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/region-category/9",
+      "uri": "https://back-pres-decreto.naoweesuite.com/region-category/9",
       "method": "GET"
     },
     "create_budget": {
       "description": "Crea un nuevo presupuesto",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/create-budget/categories/subcategories/quantity",
+      "uri": "https://back-pres-decreto.naoweesuite.com/create-budget/categories/subcategories/quantity",
       "method": "POST",
       "payload_template": "budget_payload"
     },
     "update_budget": {
       "description": "Actualiza un presupuesto",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/update-budget/categories/subcategories/quantity/{{budget_id}}",
+      "uri": "https://back-pres-decreto.naoweesuite.com/update-budget/categories/subcategories/quantity/{{budget_id}}",
       "method": "PUT",
       "payload_template": "budget_payload"
     }
@@ -36,13 +36,13 @@
         "contract_id": "{{contract_id}}",
         "categories": "{{categories}}",
         "resolution_id": 1,
-        "department_id": 9,
-        "municipality_id": 404,
-        "village": "EL EDEN",
-        "beneficiary_document": "1065588203",
-        "department": "CESAR",
-        "municipality": "VALLEDUPAR",
-        "presentation_date": "2026-09-22",
+        "department_id": 14,
+        "municipality_id": 649,
+        "village": "RAMON LUQUE",
+        "beneficiary_document": "1193253949",
+        "department": "LA GUAJIRA",
+        "municipality": "HATONUEVO",
+        "presentation_date": "2026-10-06",
         "is_contractor": false,
         "code": "PRESUPUESTO_METODO_LOCATIVO",
         "scheme_type_id": 361,
@@ -53,18 +53,21 @@
         "specific_improvement_id": null,
         "specific_improvement": "",
         "valid_year": "2025",
-        "legal_minimum_wages": 18,
-        "total_value": 25623000,
+        "legal_minimum_wages": 15,
+        "total_value": 21352500,
         "total_diagnosis": 0,
-        "subtotal_direct_costs": 0,
-        "subtotal_indirect_costs": 0,
-        "total_budget": 0,
+        "subtotal_direct_costs": 8486821,
+        "subtotal_indirect_costs": 1401535,
+        "total_budget": 9888356,
         "total_days_execution": 0,
-        "value_redounded": "0",
+        "value_redounded": "9888356",
         "data": {
           "specific_improvement_type_locative": [
-            340
+            340,
+            341
           ],
+          "specific_improvement_type_locative_mixto": null,
+          "tope_source": "contrato",
           "ubication": "urbano",
           "improvement_type": "locativo"
         },

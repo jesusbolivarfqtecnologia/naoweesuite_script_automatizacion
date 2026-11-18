@@ -2,28 +2,28 @@
   "endpoints": {
     "get_users": {
       "description": "Obtiene la lista de los usuarios",
-      "uri": "https://back-pres-decreto.naoweesuite.com/beneficiaries?contractor_email=mejoramientohatonuevo@gmail.com",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiaries-refactory?limit=1000000&order_by=id:desc",
       "method": "GET"
     },
     "get_beneficiary": {
       "description": "Obtiene el beneficiario con relaciones por user_id",
-      "uri": "https://back-pres-decreto.naoweesuite.com/beneficiary-with-relationship/{{user_id}}",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiary-with-relationship/{{user_id}}",
       "method": "GET"
     },
     "get_chapters": {
       "description": "Obtiene la lista de los capitulos y actividades en el cesar que es el id 9",
-      "uri": "https://back-pres-decreto.naoweesuite.com/region-category/9",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/region-category/9",
       "method": "GET"
     },
     "create_budget": {
       "description": "Crea un nuevo presupuesto",
-      "uri": "https://back-pres-decreto.naoweesuite.com/create-budget/categories/subcategories/quantity",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/create-budget/categories/subcategories/quantity",
       "method": "POST",
       "payload_template": "budget_payload"
     },
     "update_budget": {
       "description": "Actualiza un presupuesto",
-      "uri": "https://back-pres-decreto.naoweesuite.com/update-budget/categories/subcategories/quantity/{{budget_id}}",
+      "uri": "https://pres-back-v2-enterritorio.naosuite.co/update-budget/categories/subcategories/quantity/{{budget_id}}",
       "method": "PUT",
       "payload_template": "budget_payload"
     }
@@ -31,45 +31,40 @@
   "payload_templates": {
     "budget_payload": {
       "reference": {
+        "beneficiary_document": "1065588203",
         "beneficiary_id": "{{beneficiary_id}}",
-        "contractor_id": "{{contractor_id}}",
-        "contract_id": "{{contract_id}}",
         "categories": "{{categories}}",
-        "resolution_id": 1,
-        "department_id": 14,
-        "municipality_id": 649,
-        "village": "RAMON LUQUE",
-        "beneficiary_document": "1193253949",
-        "department": "LA GUAJIRA",
-        "municipality": "HATONUEVO",
-        "presentation_date": "2026-10-06",
-        "is_contractor": false,
         "code": "PRESUPUESTO_METODO_LOCATIVO",
-        "scheme_type_id": 361,
-        "minimum_salary_id": 289,
-        "minimum_salary": 1423500,
-        "improvement_type_id": 323,
+        "contract_id": "{{contract_id}}",
+        "contractor_id": "{{contractor_id}}",
+        "department_id": 9,
+        "department": "CESAR",
+        "improvement_type_id": 90,
         "improvement_type": "Locativo",
-        "specific_improvement_id": null,
-        "specific_improvement": "",
-        "valid_year": "2025",
-        "legal_minimum_wages": 15,
-        "total_value": 21352500,
-        "total_diagnosis": 0,
-        "subtotal_direct_costs": 8486821,
-        "subtotal_indirect_costs": 1401535,
-        "total_budget": 9888356,
+        "is_contractor": false,
+        "legal_minimum_wages": 12,
+        "minimum_salary_id": 52,
+        "minimum_salary": 1300000,
+        "municipality_id": 422,
+        "municipality": "PUEBLO BELLO",
+        "presentation_date": "2026-11-18",
+        "resolution_id": 14,
+        "scheme_type_id": 50,
+        "subtotal_direct_costs": 227108,
+        "subtotal_indirect_costs": 56779,
+        "total_budget": 1583887,
         "total_days_execution": 0,
-        "value_redounded": "9888356",
+        "total_diagnosis": 1300000,
+        "total_value": 15600000,
+        "valid_year": "2024",
+        "value_redounded": "1583887",
+        "village": null,
         "data": {
           "specific_improvement_type_locative": [
-            340,
-            341
+            106,
+            107
           ],
-          "specific_improvement_type_locative_mixto": null,
-          "tope_source": "contrato",
-          "ubication": "urbano",
-          "improvement_type": "locativo"
+          "specific_improvement_type_locative_mixto": null
         },
         "update_aiu": true
       }
