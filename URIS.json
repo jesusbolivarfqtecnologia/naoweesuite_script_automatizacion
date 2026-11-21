@@ -2,28 +2,28 @@
   "endpoints": {
     "get_users": {
       "description": "Obtiene la lista de los usuarios",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/record-budgets/beneficiaries?limit=1000000",
+      "uri": "https://back-pres-decreto.naoweesuite.com/record-budgets/beneficiaries?limit=1000000",
       "method": "GET"
     },
     "get_beneficiary": {
       "description": "Obtiene el beneficiario con relaciones por user_id",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/beneficiary-with-relationship/{{user_id}}",
+      "uri": "https://back-pres-decreto.naoweesuite.com/beneficiary-with-relationship/{{user_id}}",
       "method": "GET"
     },
     "get_chapters": {
       "description": "Obtiene la lista de los capitulos y actividades en el cesar que es el id 9",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/region-category/4",
+      "uri": "https://back-pres-decreto.naoweesuite.com/region-category/9",
       "method": "GET"
     },
     "create_budget": {
       "description": "Crea un nuevo presupuesto",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/create-budget/categories/subcategories/quantity",
+      "uri": "https://back-pres-decreto.naoweesuite.com/create-budget/categories/subcategories/quantity",
       "method": "POST",
       "payload_template": "budget_payload"
     },
     "update_budget": {
       "description": "Actualiza un presupuesto",
-      "uri": "https://pres-back-v2-enterritorio.naosuite.co/update-budget/categories/subcategories/quantity/{{budget_id}}",
+      "uri": "https://back-pres-decreto.naoweesuite.com/update-budget/categories/subcategories/quantity/{{budget_id}}",
       "method": "PUT",
       "payload_template": "budget_payload"
     }
@@ -36,19 +36,19 @@
         "contractor_id": "{{contractor_id}}",
         "contract_id": "{{contract_id}}",
         "resolution_id": 9,
-        "department_id": 4,
-        "municipality_id": 153,
+        "department_id": null,
+        "municipality_id": null,
         "village": null,
-        "scheme_type_id": 50,
-        "beneficiary_document": "49787219",
-        "minimum_salary_id": 52,
+        "scheme_type_id": null,
+        "beneficiary_document": null,
+        "minimum_salary_id": null,
         "minimum_salary": 1300000,
         "department": "BOLÍVAR",
         "municipality": "ARENAL",
-        "improvement_type_id": 54,
-        "improvement_type": "Modular",
-        "specific_improvement_id": 96,
-        "specific_improvement": "BAÑO",
+        "improvement_type_id": null,
+        "improvement_type": null,
+        "specific_improvement_id": null,
+        "specific_improvement": null,
         "valid_year": "2024",
         "presentation_date": "2026-10-27",
         "legal_minimum_wages": 18,
@@ -60,7 +60,7 @@
         "total_days_execution": 0,
         "value_redounded": "1573044",
         "data": {
-          "specific_improvement_type_locative": null,
+          "specific_improvement_type_locative": [106, 107],
           "specific_improvement_type_locative_mixto": null
         },
         "is_contractor": false,

@@ -175,13 +175,38 @@ def build_payload(reference: Dict[str, Any], mapped: Dict[str, Any], beneficiary
     payload["contract_id"] = contract_id
     payload["department_id"] = department_id
     payload["municipality_id"] = municipality_id
+
+    department_name = department.get("name") if isinstance(department, dict) else None
+    municipality_name = municipality.get("name") if isinstance(municipality, dict) else None
+    if department_name:
+        payload["department"] = department_name
+    if municipality_name:
+        payload["municipality"] = municipality_name
+
+    improvement = beneficiary.get("mejoramiento")
+    if isinstance(improvement, str) and improvement.strip():
+        payload["improvement_type"] = improvement.strip()
+        payload.pop("improvement_type_id", None)
+        payload.pop("specific_improvement_id", None)
+        payload.pop("specific_improvement", None)
+
+    vereda = beneficiary.get("vereda")
+    ubication = beneficiary.get("ubication")
+    payload["village"] = vereda if vereda not in (None, "") else None
+
+    if isinstance(ubication, str) and ubication.strip():
+        payload["ubication"] = ubication.strip()
+
+    resolucion = beneficiary.get("resolucion_cupo")
+    if resolucion:
+        payload["resolution_name"] = resolucion
+
     payload["categories"] = categories
-    # Los presupuestos existentes se actualizan; los nuevos requieren el flujo
-    # de alta iniciado desde "Beneficiarios récord" en el sistema.
-    payload["update_aiu"] = budget_id is not None
     payload["budget_id"] = budget_id
-    # Añadir beneficiary_document para trazabilidad según solicitud
-    payload["beneficiary_document"] = beneficiary_document
+    payload["update_aiu"] = budget_id is not None
+
+    payload.pop("minimum_salary_id", None)
+    payload.pop("scheme_type_id", None)
 
     return payload
 
